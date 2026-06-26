@@ -14,10 +14,9 @@
           <span>DesignTrace</span>
         </div>
 
-        <div id="statusText" class="status-text">选择一个文件夹，开始留下创作轨迹。</div>
+        <input id="searchInput" class="search" type="search" placeholder="搜索作品、路径、类型" />
 
         <div class="toolbar">
-          <input id="searchInput" class="search" type="search" placeholder="搜索作品、路径、类型" />
           <select id="sortSelect" aria-label="排序">
             <option value="lastActiveAt">最近活跃</option>
             <option value="createdAt">起始时间</option>
@@ -25,31 +24,33 @@
             <option value="name">名称</option>
             <option value="sizeBytes">大小</option>
           </select>
+          <button id="pickDirectoryButton" type="button">选择文件夹</button>
+          <button id="rescanButton" type="button">重新扫描</button>
           <button id="themeButton" class="icon-button" type="button" aria-label="切换主题">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3.75V2m0 20v-1.75M4.58 4.58 3.34 3.34m17.32 17.32-1.24-1.24M3.75 12H2m20 0h-1.75M4.58 19.42l-1.24 1.24M20.66 3.34l-1.24 1.24" />
               <circle cx="12" cy="12" r="4.2" />
             </svg>
           </button>
-          <button id="pickDirectoryButton" type="button">选择文件夹</button>
-          <button id="rescanButton" type="button">重新扫描</button>
         </div>
       </header>
 
       <main class="showcase" aria-live="polite">
-        <button id="prevButton" class="nav-arrow nav-arrow-left" type="button" aria-label="上一件作品">‹</button>
-        <button id="nextButton" class="nav-arrow nav-arrow-right" type="button" aria-label="下一件作品">›</button>
+        <button id="prevButton" class="nav-arrow nav-arrow-left" type="button" aria-label="上一件作品">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14.5 7.5 9 12l5.5 4.5" />
+          </svg>
+        </button>
+        <button id="nextButton" class="nav-arrow nav-arrow-right" type="button" aria-label="下一件作品">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9.5 7.5 15 12l-5.5 4.5" />
+          </svg>
+        </button>
 
-        <div id="prevPeek" class="peek peek-left"></div>
-        <section id="heroArtwork" class="hero-artwork"></section>
-        <div id="nextPeek" class="peek peek-right"></div>
-
-        <section class="hero-copy">
-          <div id="heroKicker" class="hero-kicker">Portfolio Timeline</div>
-          <h1 id="heroTitle">DesignTrace</h1>
-          <div id="heroMeta" class="hero-meta">作品、阶段与时间会在这里汇合。</div>
-          <p id="encouragement" class="encouragement">你的每一次创作，都值得留下轨迹。</p>
-        </section>
+        <div id="slideshowStage" class="slideshow-stage">
+          <section id="heroArtwork" class="hero-artwork"></section>
+          <aside id="heroThumbs" class="hero-thumbs" aria-label="同文件夹图片" hidden></aside>
+        </div>
 
         <div id="scanOverlay" class="scan-overlay" aria-live="polite">
           <div class="scan-orbit" aria-hidden="true"></div>
@@ -63,22 +64,38 @@
       <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal" aria-label="调整上下区域高度"></div>
 
       <section class="timeline-panel">
-        <div class="timeline-header">
-          <div>
-            <strong>创作时间轴</strong>
-            <span id="timelineHint">滚轮移动，Ctrl + 滚轮缩放，点击缩略图同步上方作品。</span>
-          </div>
-          <div class="timeline-tools">
-            <div class="segmented" aria-label="时间视图">
-              <button class="segment active" data-view="day" type="button">日</button>
-              <button class="segment" data-view="week" type="button">周</button>
-              <button class="segment" data-view="month" type="button">月</button>
+        <div class="timeline-top">
+          <section class="project-info" aria-live="polite">
+            <div id="heroKicker" class="project-kicker">DesignTrace</div>
+            <h1 id="heroTitle" class="project-title">选择文件夹开始</h1>
+            <div id="heroMeta" class="project-meta">本地读取，未上传。</div>
+          </section>
+          <div class="timeline-header">
+            <div class="timeline-tools">
+              <div class="segmented" aria-label="时间视图">
+                <button class="segment active" data-view="day" type="button">日</button>
+                <button class="segment" data-view="week" type="button">周</button>
+                <button class="segment" data-view="month" type="button">月</button>
+              </div>
+              <button id="autoplayButton" class="play-button" type="button" aria-label="播放时间轴">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="play-icon" d="M9 7.5v9l7-4.5-7-4.5Z" />
+                  <path class="pause-icon" d="M8 7h2.8v10H8zM13.2 7H16v10h-2.8z" />
+                </svg>
+                <span>播放</span>
+              </button>
             </div>
-            <button id="autoplayButton" type="button">自动播放</button>
           </div>
         </div>
         <div id="timeline" class="timeline" tabindex="0"></div>
       </section>
+
+      <footer class="statusbar" aria-live="polite">
+        <div id="statusPath" class="status-cell status-path">选择一个文件夹，开始留下创作轨迹。</div>
+        <div id="statusFile" class="status-cell status-file"></div>
+        <div id="statusStats" class="status-cell status-stats"></div>
+        <div id="statusDates" class="status-cell status-dates"></div>
+      </footer>
     </div>
 
     <script src="./app.js"></script>

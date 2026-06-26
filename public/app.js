@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   "use strict";
 
   var state = {
@@ -16,14 +16,16 @@
     dragStartX: 0,
     dragStartOffset: 0,
     autoplay: null,
-    autoplayEnabled: true,
+    autoplayEnabled: false,
     timelineHovering: false,
     view: "day",
-    objectUrls: []
+    objectUrlCache: new Map(),
+    statusMessage: "",
+    previewPath: "",
+    previewProjectId: ""
   };
 
   var els = {
-    statusText: document.getElementById("statusText"),
     pickDirectoryButton: document.getElementById("pickDirectoryButton"),
     rescanButton: document.getElementById("rescanButton"),
     searchInput: document.getElementById("searchInput"),
@@ -31,17 +33,22 @@
     themeButton: document.getElementById("themeButton"),
     prevButton: document.getElementById("prevButton"),
     nextButton: document.getElementById("nextButton"),
-    prevPeek: document.getElementById("prevPeek"),
-    nextPeek: document.getElementById("nextPeek"),
+    slideshowStage: document.getElementById("slideshowStage"),
     heroArtwork: document.getElementById("heroArtwork"),
+    heroThumbs: document.getElementById("heroThumbs"),
     heroKicker: document.getElementById("heroKicker"),
     heroTitle: document.getElementById("heroTitle"),
     heroMeta: document.getElementById("heroMeta"),
-    encouragement: document.getElementById("encouragement"),
-    timelineHint: document.getElementById("timelineHint"),
+    scanOverlay: document.getElementById("scanOverlay"),
+    scanText: document.getElementById("scanText"),
     timeline: document.getElementById("timeline"),
     autoplayButton: document.getElementById("autoplayButton"),
-    splitter: document.getElementById("splitter")
+    splitter: document.getElementById("splitter"),
+    statusbar: document.querySelector(".statusbar"),
+    statusPath: document.getElementById("statusPath"),
+    statusFile: document.getElementById("statusFile"),
+    statusStats: document.getElementById("statusStats"),
+    statusDates: document.getElementById("statusDates")
   };
 
   var IGNORE_NAMES = new Set([".git", "node_modules", "dist", "build", ".next", ".nuxt", ".cache", "coverage", "target", "vendor", "venv", ".venv", "__pycache__"]);
@@ -61,6 +68,14 @@
     ["build.gradle", "Java / Gradle", 34],
     ["README.md", "Documented Project", 14]
   ];
+
+  var TIMELINE = {
+    cardWidth: 156,
+    cardGap: 24,
+    minStep: 52,
+    padding: 168
+  };
+  var MAX_FOLDER_DEPTH = 6;
 
   function formatDate(value, compact) {
     if (!value) return "鏈煡鏃堕棿";
@@ -106,15 +121,19 @@
   }
 
   function revokeObjectUrls() {
-    state.objectUrls.forEach(function (url) {
+    state.objectUrlCache.forEach(function (url) {
       URL.revokeObjectURL(url);
     });
-    state.objectUrls = [];
+    state.objectUrlCache.clear();
   }
 
-  function objectUrl(file) {
+  function objectUrl(file, cacheKey) {
+    var key = cacheKey || file.name + ":" + file.lastModified + ":" + file.size;
+    if (state.objectUrlCache.has(key)) {
+      return state.objectUrlCache.get(key);
+    }
     var url = URL.createObjectURL(file);
-    state.objectUrls.push(url);
+    state.objectUrlCache.set(key, url);
     return url;
   }
 
@@ -214,25 +233,48 @@
   }
 
   async function scanDirectoryHandle(rootHandle, doneMessage) {
-    revokeObjectUrls();
-    state.rootHandle = rootHandle;
-    state.rootName = rootHandle.name;
-    updateFolderTooltip();
-    setStatus("正在扫描 " + rootHandle.name + "...");
+    try {
+      revokeObjectUrls();
+      state.rootHandle = rootHandle;
+      state.rootName = rootHandle.name;
+      updateFolderTooltip();
+      setScanning(true, "准备读取 " + rootHandle.name + "...");
+      setStatus("正在扫描 " + rootHandle.name + "...");
 
-    var buckets = new Map();
-    for await (var entry of rootHandle.values()) {
-      if (entry.kind !== "directory" || IGNORE_NAMES.has(entry.name)) continue;
-      var bucket = createBucket(entry.name, rootHandle.name + "/" + entry.name, rootHandle.name);
-      await addDirectoryToBucket(bucket, entry, "", 0);
-      buckets.set(entry.name, bucket);
+      var buckets = new Map();
+      for await (var entry of rootHandle.values()) {
+        if (entry.kind !== "directory" || IGNORE_NAMES.has(entry.name)) continue;
+        await registerFolderProject(entry, rootHandle.name, entry.name, 0, buckets);
+      }
+
+      state.projects = Array.from(buckets.values()).map(toProject).filter(Boolean);
+      finishScan(doneMessage || "扫描完成。");
+    } catch (error) {
+      setStatus("扫描失败，可以重新选择文件夹。");
+      throw error;
+    } finally {
+      setScanning(false);
     }
+  }
 
-    state.projects = Array.from(buckets.values()).map(toProject).filter(Boolean);
-    finishScan(doneMessage || "扫描完成。");
+  async function registerFolderProject(directoryHandle, rootName, relativePath, depth, buckets) {
+    if (depth > MAX_FOLDER_DEPTH) return;
+
+    var path = rootName + "/" + relativePath;
+    if (buckets.has(path)) return;
+
+    setScanning(true, "正在分析 " + relativePath + "...");
+    var bucket = createBucket(directoryHandle.name, path, rootName, relativePath);
+    await addDirectoryToBucket(bucket, directoryHandle, "", 0);
+    buckets.set(path, bucket);
+
+    for await (var entry of directoryHandle.values()) {
+      if (entry.kind !== "directory" || IGNORE_NAMES.has(entry.name)) continue;
+      await registerFolderProject(entry, rootName, relativePath + "/" + entry.name, depth + 1, buckets);
+    }
   }
   async function addDirectoryToBucket(bucket, directoryHandle, basePath, depth) {
-    if (depth > 3) return;
+    if (depth > MAX_FOLDER_DEPTH) return;
     for await (var entry of directoryHandle.values()) {
       if (entry.kind === "directory") {
         if (IGNORE_NAMES.has(entry.name)) continue;
@@ -260,18 +302,19 @@
       });
       if (restoredIndex >= 0) {
         state.selectedIndex = restoredIndex;
-        centerActiveThumb(false);
-        render();
       }
     }
-    setStatus(state.projects.length + " 件作品已进入时间轴。" + (message ? " " + message : ""));
+    state.statusMessage = "";
+    centerActiveThumb(false);
+    render();
   }
 
-  function createBucket(name, path, parentPath) {
+  function createBucket(name, path, parentPath, relativePath) {
     return {
       name: name,
       path: path,
       parentPath: parentPath,
+      relativePath: relativePath || name,
       fileNames: new Set(),
       dirNames: new Set(),
       previews: [],
@@ -307,6 +350,7 @@
     var meta = {
       name: fileName,
       path: bucket.path + "/" + relativePath,
+      relativePath: relativePath,
       modifiedAt: new Date(file.lastModified).toISOString(),
       sizeBytes: file.size,
       extension: ext,
@@ -326,11 +370,33 @@
       return new Date(b.modifiedAt) - new Date(a.modifiedAt);
     });
 
+    var imageFiles = bucket.recentFiles
+      .filter(function (file) {
+        return IMAGE_EXTENSIONS.has(file.extension);
+      })
+      .map(function (file) {
+        return {
+          name: file.name,
+          path: file.path,
+          relativePath: file.relativePath,
+          folderKey: fileFolderKey(file.relativePath),
+          modifiedAt: file.modifiedAt,
+          sizeBytes: file.sizeBytes,
+          extension: file.extension,
+          file: file.file
+        };
+      })
+      .sort(function (a, b) {
+        return new Date(b.modifiedAt) - new Date(a.modifiedAt);
+      });
+
     return {
       id: hashText(bucket.path),
       name: bucket.name,
+      displayName: bucket.relativePath.split("/").join(" / "),
       path: bucket.path,
       parentPath: bucket.parentPath,
+      relativePath: bucket.relativePath,
       createdAt: toIso(bucket.earliestModified),
       modifiedAt: toIso(bucket.latestModified),
       lastActiveAt: bucket.recentFiles[0] ? bucket.recentFiles[0].modifiedAt : toIso(bucket.latestModified),
@@ -340,8 +406,15 @@
       projectType: classification.type,
       score: score,
       previewFiles: bucket.previews.slice(0, 8),
-      recentFiles: bucket.recentFiles.slice(0, 8)
+      recentFiles: bucket.recentFiles.slice(0, 8),
+      imageFiles: imageFiles
     };
+  }
+
+  function fileFolderKey(relativePath) {
+    if (!relativePath) return "";
+    var index = relativePath.lastIndexOf("/");
+    return index >= 0 ? relativePath.slice(0, index) : "";
   }
 
   function classify(bucket) {
@@ -373,12 +446,12 @@
     state.filtered = state.projects
       .filter(function (project) {
         if (!query) return true;
-        return [project.name, project.path, project.projectType].some(function (value) {
+        return [project.name, project.displayName, project.path, project.relativePath, project.projectType].some(function (value) {
           return value.toLowerCase().includes(query);
         });
       })
       .sort(function (a, b) {
-        if (sortKey === "name") return a.name.localeCompare(b.name, "zh-CN");
+        if (sortKey === "name") return (a.displayName || a.name).localeCompare(b.displayName || b.name, "zh-CN");
         if (sortKey === "sizeBytes") return b.sizeBytes - a.sizeBytes;
         return new Date(b[sortKey] || 0) - new Date(a[sortKey] || 0);
       });
@@ -387,101 +460,183 @@
     render();
   }
 
-  function selectedProject() {
+  function heroProject() {
     var index = state.hoverIndex === null ? state.selectedIndex : state.hoverIndex;
     return state.filtered[index] || null;
   }
 
-  function projectAt(offset) {
-    if (!state.filtered.length) return null;
-    var baseIndex = state.hoverIndex === null ? state.selectedIndex : state.hoverIndex;
-    var index = (baseIndex + offset + state.filtered.length) % state.filtered.length;
-    return state.filtered[index];
-  }
-
   function selectIndex(index) {
     if (!state.filtered.length) return;
+    state.statusMessage = "";
     state.selectedIndex = (index + state.filtered.length) % state.filtered.length;
     state.hoverIndex = null;
+    state.previewPath = "";
+    state.previewProjectId = "";
     if (state.filtered[state.selectedIndex]) {
       localStorage.setItem("designtrace:selectedProjectId", state.filtered[state.selectedIndex].id);
     }
     render();
   }
 
-  function selectProject(id) {
-    var index = state.filtered.findIndex(function (project) {
-      return project.id === id;
-    });
-    if (index >= 0) selectIndex(index);
-  }
-
   function render() {
-    revokeObjectUrls();
     renderHero();
     renderTimeline();
     renderControls();
   }
 
   function renderHero() {
-    var project = selectedProject();
+    var project = heroProject();
 
     if (!project) {
-      els.heroArtwork.innerHTML = emptyArtwork("", "等待本地作品载入");
-      els.prevPeek.innerHTML = "";
-      els.nextPeek.innerHTML = "";
+      els.heroArtwork.innerHTML = "";
+      els.heroThumbs.innerHTML = "";
+      els.heroThumbs.hidden = true;
+      els.slideshowStage.classList.remove("has-thumbs", "is-preview");
       els.heroKicker.textContent = "DesignTrace";
       els.heroTitle.textContent = "选择文件夹开始";
       els.heroMeta.textContent = "本地读取，未上传。";
-      els.encouragement.textContent = "你的每一次创作，都值得留下轨迹。";
-      els.timelineHint.textContent = "滚轮移动，Ctrl + 滚轮缩放，点击缩略图同步上方作品。";
-      replayCopyAnimation();
+      renderStatusBar();
       return;
     }
 
     var activeIndex = state.hoverIndex === null ? state.selectedIndex : state.hoverIndex;
     var ordinal = activeIndex + 1 + " / " + state.filtered.length;
-    var lifeDays = Math.max(1, Math.round((new Date(project.modifiedAt || project.lastActiveAt) - new Date(project.createdAt || project.lastActiveAt)) / 86400000));
+    var currentFile = ensurePreview(project);
+    var thumbs = folderImages(project, currentFile);
 
-    els.heroArtwork.innerHTML = artworkMarkup(project, "art");
-    els.prevPeek.innerHTML = artworkMarkup(projectAt(-1), "peek");
-    els.nextPeek.innerHTML = artworkMarkup(projectAt(1), "peek");
+    els.heroArtwork.innerHTML = artworkMarkup(project, currentFile);
+    renderHeroThumbs(project, thumbs, currentFile);
+    els.slideshowStage.classList.toggle("has-thumbs", thumbs.length > 1);
+    els.slideshowStage.classList.toggle("is-preview", state.hoverIndex !== null && state.hoverIndex !== state.selectedIndex);
     els.heroKicker.textContent = project.projectType + " · " + ordinal;
-    els.heroTitle.textContent = project.name;
+    els.heroTitle.textContent = project.displayName || project.name;
     els.heroMeta.textContent = formatDate(project.lastActiveAt) + " · " + formatBytes(project.sizeBytes) + " · " + project.fileCount + " 个文件";
-    els.encouragement.textContent = encouragementText(state.filtered.length, lifeDays);
-    replayCopyAnimation();
+    renderStatusBar();
   }
 
-  function replayCopyAnimation() {
-    var copy = document.querySelector(".hero-copy");
-    if (!copy) return;
-    copy.classList.remove("copy-swap");
-    void copy.offsetWidth;
-    copy.classList.add("copy-swap");
+  function updateTimelineCardStates() {
+    els.timeline.querySelectorAll(".timeline-card").forEach(function (card, index) {
+      var isActive = index === state.selectedIndex;
+      var isPreview = state.hoverIndex === index && state.hoverIndex !== state.selectedIndex;
+      card.classList.toggle("active", isActive);
+      card.classList.toggle("is-preview", isPreview);
+      card.style.zIndex = String(isPreview ? 200 : isActive ? 160 : index + 1);
+    });
   }
-  function artworkMarkup(project, variant) {
+
+  function ensurePreview(project) {
+    if (!project || !project.imageFiles.length) {
+      state.previewPath = "";
+      state.previewProjectId = project ? project.id : "";
+      return null;
+    }
+    if (state.previewProjectId !== project.id) {
+      state.previewProjectId = project.id;
+      state.previewPath = project.imageFiles[0].path;
+    }
+    var current = project.imageFiles.find(function (file) {
+      return file.path === state.previewPath;
+    });
+    if (!current) {
+      state.previewPath = project.imageFiles[0].path;
+      current = project.imageFiles[0];
+    }
+    return current;
+  }
+
+  function folderImages(project, currentFile) {
+    if (!project) return [];
+    if (!currentFile) return project.imageFiles.slice();
+    return project.imageFiles.filter(function (file) {
+      return file.folderKey === currentFile.folderKey;
+    });
+  }
+
+  function previewFile(project) {
+    if (!project) return null;
+    return ensurePreview(project) || project.imageFiles[0] || null;
+  }
+
+  function renderHeroThumbs(project, thumbs, currentFile) {
+    els.heroThumbs.innerHTML = "";
+    if (!thumbs || thumbs.length <= 1) {
+      els.heroThumbs.hidden = true;
+      return;
+    }
+    els.heroThumbs.hidden = false;
+    thumbs.forEach(function (file) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "hero-thumb" + (currentFile && file.path === currentFile.path ? " active" : "");
+      button.title = file.name;
+      button.innerHTML = '<img src="' + objectUrl(file.file, file.path) + '" alt="' + escapeHtml(file.name) + '">';
+      button.addEventListener("click", function () {
+        state.previewPath = file.path;
+        state.previewProjectId = project.id;
+        renderHero();
+      });
+      els.heroThumbs.appendChild(button);
+    });
+    var activeThumb = els.heroThumbs.querySelector(".hero-thumb.active");
+    if (activeThumb) {
+      activeThumb.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function artworkMarkup(project, currentFile) {
     if (!project) return "";
-    var preview = project.previewFiles.find(function (file) {
-      return IMAGE_EXTENSIONS.has(file.extension);
-    }) || project.previewFiles[0];
+    var preview = currentFile || previewFile(project);
 
     if (preview && IMAGE_EXTENSIONS.has(preview.extension)) {
-      return '<img class="' + (variant === "peek" ? "peek-image" : "art-image") + '" src="' + objectUrl(preview.file) + '" alt="' + escapeHtml(project.name) + '">';
+      return '<img class="art-image" src="' + objectUrl(preview.file, preview.path) + '" alt="' + escapeHtml(preview.name) + '">';
     }
-    return emptyArtwork(project.name, project.path, variant);
+    return emptyArtwork(project.displayName || project.name, project.path);
   }
 
-  function emptyArtwork(title, subtitle, variant) {
-    var className = variant === "peek" ? "peek-generated" : "art-generated";
+  function emptyArtwork(title, subtitle) {
     var heading = title ? "<h2>" + escapeHtml(title) + "</h2>" : "";
-    return '<div class="' + className + '">' + heading + "<p>" + escapeHtml(subtitle) + "</p></div>";
+    return '<div class="art-generated">' + heading + "<p>" + escapeHtml(subtitle) + "</p></div>";
   }
 
-  function encouragementText(count, lifeDays) {
-    if (count > 0 && lifeDays > 1) return "从第一张草图到现在，这个项目已经走过 " + lifeDays + " 天。";
-    if (count > 0) return "你已经完成 " + count + " 件作品，继续保持。";
-    return "你的每一次创作，都值得留下轨迹。";
+  function renderStatusBar() {
+    if (!els.statusPath || !els.statusFile || !els.statusStats || !els.statusDates) return;
+
+    els.statusFile.textContent = "";
+    els.statusStats.textContent = "";
+    els.statusDates.textContent = "";
+    if (els.statusbar) els.statusbar.classList.remove("is-preview");
+
+    var project = heroProject();
+    if (!project) {
+      els.statusPath.textContent = state.statusMessage
+        || (state.rootName
+          ? state.rootName + " · " + state.projects.length + " 件作品"
+          : "选择一个文件夹，开始留下创作轨迹。");
+      if (!state.statusMessage && state.rootName) {
+        els.statusStats.textContent = "本地读取，未上传。";
+      }
+      return;
+    }
+
+    var preview = previewFile(project);
+    els.statusPath.textContent = project.path;
+    els.statusFile.textContent = preview
+      ? preview.name + " · " + formatBytes(preview.sizeBytes)
+      : "";
+    els.statusStats.textContent = [
+      project.projectType,
+      project.fileCount + " 个文件",
+      project.folderCount + " 个文件夹",
+      formatBytes(project.sizeBytes)
+    ].join(" · ");
+    els.statusDates.textContent = [
+      "最近 " + formatDate(project.lastActiveAt, true),
+      "修改 " + formatDate(project.modifiedAt, true),
+      "创建 " + formatDate(project.createdAt, true)
+    ].join(" · ");
+    if (els.statusbar) {
+      els.statusbar.classList.toggle("is-preview", state.hoverIndex !== null && state.hoverIndex !== state.selectedIndex);
+    }
   }
 
   function renderTimeline() {
@@ -493,8 +648,8 @@
 
     var metrics = timelineMetrics();
     var track = document.createElement("div");
-    track.className = "timeline-track";
-    track.style.width = metrics.width + "px";
+    track.className = "timeline-track" + (metrics.layered ? " is-layered" : "");
+    track.style.width = metrics.trackWidth + "px";
     track.style.transform = "translateX(" + state.timelineOffset + "px)";
 
     var axis = document.createElement("div");
@@ -503,32 +658,46 @@
     renderTicks(track, metrics);
 
     state.filtered.forEach(function (project, index) {
-      var x = timeToX(new Date(project.lastActiveAt || project.modifiedAt).getTime(), metrics);
+      var left = cardLeft(index, metrics);
+      var isActive = index === state.selectedIndex;
+      var isPreview = state.hoverIndex === index && state.hoverIndex !== state.selectedIndex;
       var button = document.createElement("button");
       button.type = "button";
-      button.className = "timeline-card" + (index === state.selectedIndex ? " active" : "");
-      button.style.left = x - 78 + "px";
+      button.className = "timeline-card"
+        + (isActive ? " active" : "")
+        + (isPreview ? " is-preview" : "")
+        + (metrics.layered ? " is-layered" : "");
+      button.style.left = left + "px";
+      button.style.zIndex = String(isPreview ? 200 : isActive ? 160 : index + 1);
+      if (metrics.layered) {
+        button.style.setProperty("--layer-depth", String(Math.min(index, 6)));
+      }
       button.style.animationDelay = Math.min(index * 32, 360) + "ms";
       button.innerHTML = timelineCardMarkup(project);
       button.addEventListener("click", function () {
-        selectProject(project.id);
+        selectIndex(index);
+        centerActiveThumb(true);
       });
       button.addEventListener("mouseenter", function () {
         state.hoverIndex = index;
+        updateTimelineCardStates();
         renderHero();
       });
       button.addEventListener("mouseleave", function () {
+        if (state.hoverIndex !== index) return;
         state.hoverIndex = null;
+        updateTimelineCardStates();
         renderHero();
       });
       track.appendChild(button);
     });
 
     els.timeline.appendChild(track);
+    updateTimelineCardStates();
     centerActiveThumb(false);
   }
 
-  function timelineMetrics() {
+  function timelineTimeRange() {
     var times = state.filtered.map(function (project) {
       return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt).getTime();
     }).filter(function (time) {
@@ -540,13 +709,48 @@
       min = Date.now() - 86400000 * 7;
       max = Date.now() + 86400000 * 7;
     }
-    var baseWidth = Math.max(els.timeline.clientWidth || 1000, state.filtered.length * 186);
-    return { min: min, max: max, width: baseWidth * state.timelineScale, padding: 140 };
+    return { min: min, max: max };
+  }
+
+  function timelineLayout() {
+    var count = state.filtered.length;
+    var fullStep = TIMELINE.cardWidth + TIMELINE.cardGap;
+    var idealWidth = TIMELINE.padding * 2 + TIMELINE.cardWidth + Math.max(0, count - 1) * fullStep;
+    var viewport = els.timeline.clientWidth || 1000;
+    var scaledIdeal = idealWidth * state.timelineScale;
+    var trackWidth = Math.max(viewport, scaledIdeal);
+    var span = trackWidth - TIMELINE.padding * 2 - TIMELINE.cardWidth;
+    var step = count > 1 ? span / (count - 1) : fullStep;
+
+    step = Math.min(fullStep, Math.max(TIMELINE.minStep, step));
+
+    var actualWidth = TIMELINE.padding * 2 + TIMELINE.cardWidth + Math.max(0, count - 1) * step;
+    var layered = step < TIMELINE.cardWidth;
+
+    return {
+      trackWidth: actualWidth,
+      step: step,
+      layered: layered,
+      padding: TIMELINE.padding,
+      cardWidth: TIMELINE.cardWidth
+    };
+  }
+
+  function timelineMetrics() {
+    return Object.assign(timelineLayout(), timelineTimeRange());
+  }
+
+  function cardLeft(index, metrics) {
+    return metrics.padding + index * metrics.step;
+  }
+
+  function cardCenter(index, metrics) {
+    return cardLeft(index, metrics) + metrics.cardWidth / 2;
   }
 
   function timeToX(time, metrics) {
     var span = metrics.max - metrics.min || 1;
-    return metrics.padding + ((time - metrics.min) / span) * Math.max(1, metrics.width - metrics.padding * 2);
+    return metrics.padding + ((time - metrics.min) / span) * Math.max(1, metrics.trackWidth - metrics.padding * 2);
   }
 
   function renderTicks(track, metrics) {
@@ -561,6 +765,8 @@
       if (index % 2 === 0) {
         var label = document.createElement("div");
         label.className = "tick-label";
+        if (index === 0) label.classList.add("tick-label-start");
+        if (index === count) label.classList.add("tick-label-end");
         label.style.left = x + "px";
         label.textContent = tickLabel(new Date(time));
         track.appendChild(label);
@@ -575,18 +781,16 @@
   }
 
   function timelineCardMarkup(project) {
-    var preview = project.previewFiles.find(function (file) {
-      return IMAGE_EXTENSIONS.has(file.extension);
-    });
+    var preview = project.imageFiles && project.imageFiles[0] ? project.imageFiles[0] : null;
     var thumb = preview
-      ? '<img src="' + objectUrl(preview.file) + '" alt="' + escapeHtml(project.name) + '">'
+      ? '<img src="' + objectUrl(preview.file, preview.path) + '" alt="' + escapeHtml(project.name) + '">'
       : '<div class="thumb-placeholder">' + escapeHtml(project.projectType) + "</div>";
     return [
       '<div class="thumb">',
       thumb,
       "</div>",
       '<div class="thumb-meta">',
-      '<div class="thumb-title">' + escapeHtml(project.name) + "</div>",
+      '<div class="thumb-title">' + escapeHtml(project.displayName || project.name) + "</div>",
       '<div class="thumb-date">' + stageLabel(project) + " · " + formatDate(project.lastActiveAt, true) + "</div>",
       "</div>"
     ].join("");
@@ -606,10 +810,9 @@
   }
 
   function centerActiveThumb(animated) {
-    var project = selectedProject();
-    if (!project) return;
+    if (!state.filtered.length) return;
     var metrics = timelineMetrics();
-    var x = timeToX(new Date(project.lastActiveAt || project.modifiedAt).getTime(), metrics);
+    var x = cardCenter(state.selectedIndex, metrics);
     state.timelineOffset = els.timeline.clientWidth / 2 - x;
     var track = els.timeline.querySelector(".timeline-track");
     if (track) {
@@ -628,17 +831,23 @@
   }
 
   function setStatus(message) {
-    els.statusText.textContent = message;
+    state.statusMessage = message || "";
+    renderStatusBar();
+  }
+
+  function setScanning(active, message) {
+    if (!els.scanOverlay) return;
+    if (message) els.scanText.textContent = message;
+    els.scanOverlay.classList.toggle("active", active);
   }
 
   function toggleAutoplay() {
     state.autoplayEnabled = !state.autoplayEnabled;
     if (!state.autoplayEnabled) {
       stopAutoplay();
-      els.autoplayButton.textContent = "缁х画鎾斁";
+      setPlayButton(false);
       return;
     }
-    els.autoplayButton.textContent = "鏆傚仠";
     ensureAutoplay();
   }
 
@@ -651,10 +860,10 @@
   function ensureAutoplay() {
     stopAutoplay();
     if (!state.autoplayEnabled || state.filtered.length < 2) {
-      els.autoplayButton.textContent = state.autoplayEnabled ? "鑷姩鎾斁" : "缁х画鎾斁";
+      setPlayButton(false);
       return;
     }
-    els.autoplayButton.textContent = "鏆傚仠";
+    setPlayButton(true);
     state.autoplay = setInterval(function () {
       if (state.timelineHovering || state.hoverIndex !== null) return;
       selectIndex(state.selectedIndex + 1);
@@ -662,6 +871,12 @@
     }, 2400);
   }
 
+  function setPlayButton(playing) {
+    els.autoplayButton.classList.toggle("playing", playing);
+    var label = els.autoplayButton.querySelector("span");
+    if (label) label.textContent = playing ? "暂停" : "播放";
+    els.autoplayButton.setAttribute("aria-label", playing ? "暂停时间轴" : "播放时间轴");
+  }
   function bindEvents() {
     els.pickDirectoryButton.addEventListener("click", pickDirectory);
     els.rescanButton.addEventListener("click", rescan);
@@ -693,7 +908,9 @@
     });
     els.timeline.addEventListener("mouseleave", function () {
       state.timelineHovering = false;
+      if (state.hoverIndex === null) return;
       state.hoverIndex = null;
+      updateTimelineCardStates();
       renderHero();
     });
 
@@ -747,7 +964,7 @@
     });
     els.splitter.addEventListener("pointermove", function (event) {
       if (!state.splitterDragging) return;
-      var nextHeight = Math.max(180, Math.min(window.innerHeight - 260, window.innerHeight - event.clientY));
+      var nextHeight = Math.max(180, Math.min(window.innerHeight - 290, window.innerHeight - event.clientY));
       document.documentElement.style.setProperty("--timeline-height", nextHeight + "px");
       centerActiveThumb(false);
     });
@@ -791,5 +1008,6 @@
   render();
   restorePreviousDirectory();
 })();
+
 
 
