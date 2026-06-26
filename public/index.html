@@ -66,12 +66,24 @@
       <section class="timeline-panel">
         <div class="timeline-top">
           <section class="project-info" aria-live="polite">
-            <div id="heroKicker" class="project-kicker">DesignTrace</div>
             <h1 id="heroTitle" class="project-title">选择文件夹开始</h1>
-            <div id="heroMeta" class="project-meta">本地读取，未上传。</div>
+            <p class="project-detail">
+              <span id="heroKicker" class="project-kicker">DesignTrace</span><span id="heroMeta" class="project-meta">本地读取，未上传。</span>
+            </p>
           </section>
           <div class="timeline-header">
             <div class="timeline-tools">
+              <select id="scopeFilterSelect" class="scope-filter" aria-label="范围筛选">
+                <option value="all">全部</option>
+                <option value="sameParent">同父文件夹</option>
+                <option value="sameRoot">同根目录</option>
+                <option value="topLevel">仅顶层</option>
+                <option value="nested">仅子文件夹</option>
+              </select>
+              <select id="extFilterSelect" class="scope-filter" aria-label="后缀筛选">
+                <option value="all">全部后缀</option>
+                <option value="sameAsCurrent">同当前后缀</option>
+              </select>
               <div class="segmented" aria-label="时间视图">
                 <button class="segment active" data-view="day" type="button">日</button>
                 <button class="segment" data-view="week" type="button">周</button>

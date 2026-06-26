@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   var state = {
@@ -19,6 +19,9 @@
     autoplayEnabled: false,
     timelineHovering: false,
     view: "day",
+    scopeFilter: "all",
+    extFilter: "all",
+    anchorProjectId: "",
     objectUrlCache: new Map(),
     statusMessage: "",
     previewPath: "",
@@ -43,6 +46,8 @@
     scanText: document.getElementById("scanText"),
     timeline: document.getElementById("timeline"),
     autoplayButton: document.getElementById("autoplayButton"),
+    scopeFilterSelect: document.getElementById("scopeFilterSelect"),
+    extFilterSelect: document.getElementById("extFilterSelect"),
     splitter: document.getElementById("splitter"),
     statusbar: document.querySelector(".statusbar"),
     statusPath: document.getElementById("statusPath"),
@@ -294,6 +299,7 @@
     });
     state.selectedIndex = 0;
     state.timelineOffset = 0;
+    updateExtensionFilterOptions();
     applyFilters();
     ensureAutoplay();
     if (lastSelectedId) {
@@ -303,6 +309,9 @@
       if (restoredIndex >= 0) {
         state.selectedIndex = restoredIndex;
       }
+    }
+    if (state.filtered[state.selectedIndex]) {
+      state.anchorProjectId = state.filtered[state.selectedIndex].id;
     }
     state.statusMessage = "";
     centerActiveThumb(false);
@@ -390,6 +399,11 @@
         return new Date(b.modifiedAt) - new Date(a.modifiedAt);
       });
 
+    var extensionSet = new Set();
+    bucket.recentFiles.forEach(function (file) {
+      if (file.extension) extensionSet.add(file.extension);
+    });
+
     return {
       id: hashText(bucket.path),
       name: bucket.name,
@@ -407,7 +421,8 @@
       score: score,
       previewFiles: bucket.previews.slice(0, 8),
       recentFiles: bucket.recentFiles.slice(0, 8),
-      imageFiles: imageFiles
+      imageFiles: imageFiles,
+      extensions: Array.from(extensionSet).sort()
     };
   }
 
@@ -440,15 +455,125 @@
     return new Date(timestamp).toISOString();
   }
 
+  function parentFolderKey(relativePath) {
+    if (!relativePath) return "";
+    var index = relativePath.lastIndexOf("/");
+    return index >= 0 ? relativePath.slice(0, index) : "";
+  }
+
+  function rootFolderKey(relativePath) {
+    if (!relativePath) return "";
+    var index = relativePath.indexOf("/");
+    return index >= 0 ? relativePath.slice(0, index) : relativePath;
+  }
+
+  function scopeAnchorProject() {
+    if (state.anchorProjectId) {
+      var anchored = state.projects.find(function (project) {
+        return project.id === state.anchorProjectId;
+      });
+      if (anchored) return anchored;
+    }
+    return state.projects[0] || null;
+  }
+
+  function matchesScopeFilter(project, scope, anchor) {
+    if (scope === "all") return true;
+    if (scope === "topLevel") return parentFolderKey(project.relativePath) === "";
+    if (scope === "nested") return parentFolderKey(project.relativePath) !== "";
+    if (!anchor) return true;
+    if (scope === "sameParent") {
+      return parentFolderKey(project.relativePath) === parentFolderKey(anchor.relativePath);
+    }
+    if (scope === "sameRoot") {
+      return rootFolderKey(project.relativePath) === rootFolderKey(anchor.relativePath);
+    }
+    return true;
+  }
+
+  function scopeFilterLabel(scope) {
+    if (scope === "sameParent") return "同父文件夹";
+    if (scope === "sameRoot") return "同根目录";
+    if (scope === "topLevel") return "仅顶层";
+    if (scope === "nested") return "仅子文件夹";
+    return "";
+  }
+
+  function extensionFilterLabel(ext) {
+    if (!ext || ext === "all") return "";
+    if (ext === "sameAsCurrent") return "同当前后缀";
+    return ext;
+  }
+
+  function anchorPreviewExtension(anchor) {
+    if (!anchor || !anchor.imageFiles.length) return "";
+    if (state.previewProjectId === anchor.id && state.previewPath) {
+      var current = anchor.imageFiles.find(function (file) {
+        return file.path === state.previewPath;
+      });
+      if (current) return current.extension;
+    }
+    return anchor.imageFiles[0].extension;
+  }
+
+  function projectHasExtension(project, ext, anchor) {
+    if (!ext || ext === "all") return true;
+    if (!project.extensions || !project.extensions.length) return false;
+    if (ext === "sameAsCurrent") {
+      if (!anchor) return true;
+      var previewExt = anchorPreviewExtension(anchor);
+      if (!previewExt) return true;
+      return project.extensions.indexOf(previewExt) >= 0;
+    }
+    return project.extensions.indexOf(ext) >= 0;
+  }
+
+  function updateExtensionFilterOptions() {
+    if (!els.extFilterSelect) return;
+    var current = els.extFilterSelect.value;
+    var extensions = new Set();
+    state.projects.forEach(function (project) {
+      (project.extensions || []).forEach(function (ext) {
+        extensions.add(ext);
+      });
+    });
+    els.extFilterSelect.innerHTML = [
+      '<option value="all">全部后缀</option>',
+      '<option value="sameAsCurrent">同当前后缀</option>'
+    ].join("");
+    Array.from(extensions).sort().forEach(function (ext) {
+      var option = document.createElement("option");
+      option.value = ext;
+      option.textContent = ext;
+      els.extFilterSelect.appendChild(option);
+    });
+    var hasCurrent = Array.from(els.extFilterSelect.options).some(function (option) {
+      return option.value === current;
+    });
+    els.extFilterSelect.value = hasCurrent ? current : "all";
+    state.extFilter = els.extFilterSelect.value;
+  }
+
   function applyFilters() {
     var query = els.searchInput.value.trim().toLowerCase();
     var sortKey = els.sortSelect.value;
+    var scope = els.scopeFilterSelect ? els.scopeFilterSelect.value : "all";
+    var ext = els.extFilterSelect ? els.extFilterSelect.value : "all";
+    state.scopeFilter = scope;
+    state.extFilter = ext;
+    var anchor = scopeAnchorProject();
+    var selectedId = state.anchorProjectId || (state.filtered[state.selectedIndex] && state.filtered[state.selectedIndex].id);
+
     state.filtered = state.projects
       .filter(function (project) {
-        if (!query) return true;
-        return [project.name, project.displayName, project.path, project.relativePath, project.projectType].some(function (value) {
-          return value.toLowerCase().includes(query);
-        });
+        if (query) {
+          var matched = [project.name, project.displayName, project.path, project.relativePath, project.projectType].some(function (value) {
+            return value.toLowerCase().includes(query);
+          });
+          if (!matched) return false;
+        }
+        if (!matchesScopeFilter(project, scope, anchor)) return false;
+        return projectHasExtension(project, ext, anchor);
       })
       .sort(function (a, b) {
         if (sortKey === "name") return (a.displayName || a.name).localeCompare(b.displayName || b.name, "zh-CN");
@@ -456,7 +581,14 @@
         return new Date(b[sortKey] || 0) - new Date(a[sortKey] || 0);
       });
 
-    if (state.selectedIndex >= state.filtered.length) state.selectedIndex = 0;
+    if (selectedId) {
+      var restoredIndex = state.filtered.findIndex(function (project) {
+        return project.id === selectedId;
+      });
+      state.selectedIndex = restoredIndex >= 0 ? restoredIndex : 0;
+    } else if (state.selectedIndex >= state.filtered.length) {
+      state.selectedIndex = 0;
+    }
     render();
   }
 
@@ -473,6 +605,7 @@
     state.previewPath = "";
     state.previewProjectId = "";
     if (state.filtered[state.selectedIndex]) {
+      state.anchorProjectId = state.filtered[state.selectedIndex].id;
       localStorage.setItem("designtrace:selectedProjectId", state.filtered[state.selectedIndex].id);
     }
     render();
@@ -501,6 +634,8 @@
 
     var activeIndex = state.hoverIndex === null ? state.selectedIndex : state.hoverIndex;
     var ordinal = activeIndex + 1 + " / " + state.filtered.length;
+    var scopeNote = scopeFilterLabel(state.scopeFilter);
+    var extNote = extensionFilterLabel(state.extFilter);
     var currentFile = ensurePreview(project);
     var thumbs = folderImages(project, currentFile);
 
@@ -508,7 +643,13 @@
     renderHeroThumbs(project, thumbs, currentFile);
     els.slideshowStage.classList.toggle("has-thumbs", thumbs.length > 1);
     els.slideshowStage.classList.toggle("is-preview", state.hoverIndex !== null && state.hoverIndex !== state.selectedIndex);
-    els.heroKicker.textContent = project.projectType + " · " + ordinal;
+    els.heroKicker.textContent = [
+      project.projectType,
+      ordinal,
+      scopeNote,
+      extNote,
+      state.projects.length !== state.filtered.length ? "共 " + state.projects.length + " 件" : ""
+    ].filter(Boolean).join(" · ");
     els.heroTitle.textContent = project.displayName || project.name;
     els.heroMeta.textContent = formatDate(project.lastActiveAt) + " · " + formatBytes(project.sizeBytes) + " · " + project.fileCount + " 个文件";
     renderStatusBar();
@@ -641,10 +782,16 @@
 
   function renderTimeline() {
     els.timeline.innerHTML = "";
+    els.timeline.classList.remove("view-day", "view-week", "view-month");
     if (!state.filtered.length) {
-      els.timeline.innerHTML = '<div class="empty-state">选择文件夹后，项目会按时间排列在这里。</div>';
+      var emptyMessage = state.projects.length
+        ? "当前筛选条件下没有作品。"
+        : "选择文件夹后，项目会按时间排列在这里。";
+      els.timeline.innerHTML = '<div class="empty-state">' + emptyMessage + "</div>";
       return;
     }
+
+    els.timeline.classList.add("view-" + state.view);
 
     var metrics = timelineMetrics();
     var track = document.createElement("div");
@@ -764,11 +911,22 @@
       track.appendChild(tick);
       if (index % 2 === 0) {
         var label = document.createElement("div");
+        var date = new Date(time);
         label.className = "tick-label";
         if (index === 0) label.classList.add("tick-label-start");
         if (index === count) label.classList.add("tick-label-end");
         label.style.left = x + "px";
-        label.textContent = tickLabel(new Date(time));
+        if (state.view === "month") {
+          label.classList.add("tick-label-month");
+          label.innerHTML =
+            '<span class="tick-month-num">' + (date.getMonth() + 1) + '</span><span class="tick-month-suffix">月</span>';
+        } else if (state.view === "day") {
+          label.classList.add("tick-label-day");
+          label.innerHTML =
+            '<span class="tick-month-num">' + String(date.getMonth() + 1).padStart(2, "0") + '</span><span class="tick-day-num">/' + String(date.getDate()).padStart(2, "0") + "</span>";
+        } else {
+          label.textContent = tickLabel(date);
+        }
         track.appendChild(label);
       }
     }
@@ -883,6 +1041,8 @@
     els.themeButton.addEventListener("click", toggleTheme);
     els.searchInput.addEventListener("input", applyFilters);
     els.sortSelect.addEventListener("change", applyFilters);
+    if (els.scopeFilterSelect) els.scopeFilterSelect.addEventListener("change", applyFilters);
+    if (els.extFilterSelect) els.extFilterSelect.addEventListener("change", applyFilters);
     els.prevButton.addEventListener("click", function () {
       selectIndex(state.selectedIndex - 1);
       centerActiveThumb(true);
