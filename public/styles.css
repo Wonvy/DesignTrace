@@ -629,7 +629,7 @@ select {
   justify-content: center;
   gap: 6px;
   min-height: var(--project-info-height);
-  padding: 0 min(360px, 38vw) 2px;
+  padding: 0 min(420px, 42vw) 2px;
   text-align: center;
   pointer-events: none;
   box-sizing: border-box;
@@ -652,8 +652,11 @@ select {
 .timeline-tools {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 14px;
+  max-width: min(100%, 520px);
 }
 
 .timeline-tools .segmented,
@@ -681,6 +684,13 @@ select {
   font-size: 14px;
   max-width: 118px;
   cursor: pointer;
+}
+
+.timeline-tools .scope-filter-multi {
+  min-height: 32px;
+  max-height: 56px;
+  padding: 4px 8px;
+  overflow-y: auto;
 }
 
 .timeline-tools .scope-filter:hover {
@@ -824,6 +834,7 @@ select {
   border-radius: 8px;
   background: transparent;
   text-align: left;
+  cursor: pointer;
   opacity: 0;
   animation: thumbIn 460ms ease forwards;
   transition: transform 180ms ease, background-color 220ms ease, opacity 220ms ease, z-index 0ms;
@@ -978,6 +989,7 @@ select {
 }
 
 .thumb {
+  position: relative;
   width: 100%;
   height: 88px;
   overflow: hidden;
@@ -986,6 +998,55 @@ select {
   background: transparent;
   box-shadow: none;
   transition: background-color 220ms ease;
+}
+
+.timeline-folder-action {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  box-shadow: none;
+  transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.timeline-folder-action svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.timeline-card:hover .timeline-folder-action,
+.timeline-card.is-preview .timeline-folder-action,
+.timeline-card:focus-within .timeline-folder-action {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.timeline-folder-action:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.timeline-folder-action[data-mode="copy"] svg rect,
+.timeline-folder-action[data-mode="copy"] svg path {
+  stroke-width: 1.6;
 }
 
 .timeline-card:hover .thumb,

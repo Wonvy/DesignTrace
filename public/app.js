@@ -20,7 +20,8 @@
     timelineHovering: false,
     view: "day",
     scopeFilter: "all",
-    extFilter: "all",
+    extFilter: ["all"],
+    sizeFilter: "all",
     anchorProjectId: "",
     objectUrlCache: new Map(),
     statusMessage: "",
@@ -48,6 +49,7 @@
     autoplayButton: document.getElementById("autoplayButton"),
     scopeFilterSelect: document.getElementById("scopeFilterSelect"),
     extFilterSelect: document.getElementById("extFilterSelect"),
+    sizeFilterSelect: document.getElementById("sizeFilterSelect"),
     splitter: document.getElementById("splitter"),
     statusbar: document.querySelector(".statusbar"),
     statusPath: document.getElementById("statusPath"),
@@ -81,6 +83,11 @@
     padding: 168
   };
   var MAX_FOLDER_DEPTH = 6;
+  var IMAGE_SIZE = {
+    small: 80 * 1024,
+    medium: 512 * 1024,
+    large: 2 * 1024 * 1024
+  };
 
   function formatDate(value, compact) {
     if (!value) return "鏈煡鏃堕棿";
@@ -270,6 +277,7 @@
 
     setScanning(true, "正在分析 " + relativePath + "...");
     var bucket = createBucket(directoryHandle.name, path, rootName, relativePath);
+    bucket.directoryHandle = directoryHandle;
     await addDirectoryToBucket(bucket, directoryHandle, "", 0);
     buckets.set(path, bucket);
 
@@ -396,6 +404,7 @@
         };
       })
       .sort(function (a, b) {
+        if (b.sizeBytes !== a.sizeBytes) return b.sizeBytes - a.sizeBytes;
         return new Date(b.modifiedAt) - new Date(a.modifiedAt);
       });
 
@@ -422,7 +431,8 @@
       previewFiles: bucket.previews.slice(0, 8),
       recentFiles: bucket.recentFiles.slice(0, 8),
       imageFiles: imageFiles,
-      extensions: Array.from(extensionSet).sort()
+      extensions: Array.from(extensionSet).sort(),
+      directoryHandle: bucket.directoryHandle || null
     };
   }
 
@@ -453,6 +463,46 @@
   function toIso(timestamp) {
     if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
     return new Date(timestamp).toISOString();
+  }
+
+  function sizeFilterMinBytes(sizeFilter) {
+    if (sizeFilter === "hideSmall") return IMAGE_SIZE.small;
+    if (sizeFilter === "medium") return IMAGE_SIZE.medium;
+    if (sizeFilter === "large") return IMAGE_SIZE.large;
+    return 0;
+  }
+
+  function displayableImages(project) {
+    if (!project || !project.imageFiles.length) return [];
+    var min = sizeFilterMinBytes(state.sizeFilter);
+    var images = project.imageFiles.filter(function (file) {
+      return !min || file.sizeBytes >= min;
+    });
+    return images.slice().sort(function (a, b) {
+      if (b.sizeBytes !== a.sizeBytes) return b.sizeBytes - a.sizeBytes;
+      return new Date(b.modifiedAt) - new Date(a.modifiedAt);
+    });
+  }
+
+  function primaryDisplayImage(project) {
+    var images = displayableImages(project);
+    return images[0] || null;
+  }
+
+  function sizeFilterLabel(sizeFilter) {
+    if (sizeFilter === "hideSmall") return "隐藏小图";
+    if (sizeFilter === "medium") return "≥512KB";
+    if (sizeFilter === "large") return "≥2MB";
+    return "";
+  }
+
+  function matchesSizeFilter(project, sizeFilter) {
+    if (!sizeFilter || sizeFilter === "all") return true;
+    if (!project.imageFiles || !project.imageFiles.length) return true;
+    var min = sizeFilterMinBytes(sizeFilter);
+    return project.imageFiles.some(function (file) {
+      return file.sizeBytes >= min;
+    });
   }
 
   function parentFolderKey(relativePath) {
@@ -499,38 +549,65 @@
     return "";
   }
 
-  function extensionFilterLabel(ext) {
-    if (!ext || ext === "all") return "";
-    if (ext === "sameAsCurrent") return "同当前后缀";
-    return ext;
+  function extensionFilterLabel(values) {
+    if (!values || !values.length || values.indexOf("all") >= 0) return "";
+    return values.map(function (ext) {
+      if (ext === "sameAsCurrent") return "同当前后缀";
+      return ext;
+    }).join("+");
+  }
+
+  function getExtFilterValues() {
+    if (!els.extFilterSelect) return ["all"];
+    var values = Array.from(els.extFilterSelect.selectedOptions).map(function (option) {
+      return option.value;
+    });
+    return values.length ? values : ["all"];
   }
 
   function anchorPreviewExtension(anchor) {
-    if (!anchor || !anchor.imageFiles.length) return "";
+    if (!anchor) return "";
+    var images = displayableImages(anchor);
+    if (!images.length) return "";
     if (state.previewProjectId === anchor.id && state.previewPath) {
-      var current = anchor.imageFiles.find(function (file) {
+      var current = images.find(function (file) {
         return file.path === state.previewPath;
       });
       if (current) return current.extension;
     }
-    return anchor.imageFiles[0].extension;
+    return images[0].extension;
   }
 
-  function projectHasExtension(project, ext, anchor) {
-    if (!ext || ext === "all") return true;
+  function projectMatchesExtensions(project, values, anchor) {
+    if (!values.length || values.indexOf("all") >= 0) return true;
     if (!project.extensions || !project.extensions.length) return false;
-    if (ext === "sameAsCurrent") {
-      if (!anchor) return true;
-      var previewExt = anchorPreviewExtension(anchor);
-      if (!previewExt) return true;
-      return project.extensions.indexOf(previewExt) >= 0;
+    return values.some(function (ext) {
+      if (ext === "sameAsCurrent") {
+        var previewExt = anchorPreviewExtension(anchor);
+        return previewExt && project.extensions.indexOf(previewExt) >= 0;
+      }
+      return project.extensions.indexOf(ext) >= 0;
+    });
+  }
+
+  function syncExtFilterSelection() {
+    if (!els.extFilterSelect) return;
+    var selected = getExtFilterValues();
+    var allOption = els.extFilterSelect.querySelector('option[value="all"]');
+    if (selected.indexOf("all") >= 0 && selected.length > 1 && allOption) {
+      allOption.selected = false;
+      selected = getExtFilterValues();
     }
-    return project.extensions.indexOf(ext) >= 0;
+    if (!selected.length && allOption) {
+      allOption.selected = true;
+    }
   }
 
   function updateExtensionFilterOptions() {
     if (!els.extFilterSelect) return;
-    var current = els.extFilterSelect.value;
+    var current = getExtFilterValues().filter(function (value) {
+      return value !== "all";
+    });
     var extensions = new Set();
     state.projects.forEach(function (project) {
       (project.extensions || []).forEach(function (ext) {
@@ -547,20 +624,33 @@
       option.textContent = ext;
       els.extFilterSelect.appendChild(option);
     });
-    var hasCurrent = Array.from(els.extFilterSelect.options).some(function (option) {
-      return option.value === current;
-    });
-    els.extFilterSelect.value = hasCurrent ? current : "all";
-    state.extFilter = els.extFilterSelect.value;
+    if (!current.length) {
+      els.extFilterSelect.querySelector('option[value="all"]').selected = true;
+    } else {
+      Array.from(els.extFilterSelect.options).forEach(function (option) {
+        option.selected = current.indexOf(option.value) >= 0;
+      });
+    }
+    state.extFilter = getExtFilterValues();
+  }
+
+  function activeFilterLabels() {
+    return [
+      scopeFilterLabel(state.scopeFilter),
+      extensionFilterLabel(state.extFilter),
+      sizeFilterLabel(state.sizeFilter)
+    ].filter(Boolean);
   }
 
   function applyFilters() {
     var query = els.searchInput.value.trim().toLowerCase();
     var sortKey = els.sortSelect.value;
     var scope = els.scopeFilterSelect ? els.scopeFilterSelect.value : "all";
-    var ext = els.extFilterSelect ? els.extFilterSelect.value : "all";
+    var extValues = getExtFilterValues();
+    var sizeFilter = els.sizeFilterSelect ? els.sizeFilterSelect.value : "all";
     state.scopeFilter = scope;
-    state.extFilter = ext;
+    state.extFilter = extValues;
+    state.sizeFilter = sizeFilter;
     var anchor = scopeAnchorProject();
     var selectedId = state.anchorProjectId || (state.filtered[state.selectedIndex] && state.filtered[state.selectedIndex].id);
 
@@ -573,7 +663,8 @@
           if (!matched) return false;
         }
         if (!matchesScopeFilter(project, scope, anchor)) return false;
-        return projectHasExtension(project, ext, anchor);
+        if (!projectMatchesExtensions(project, extValues, anchor)) return false;
+        return matchesSizeFilter(project, sizeFilter);
       })
       .sort(function (a, b) {
         if (sortKey === "name") return (a.displayName || a.name).localeCompare(b.displayName || b.name, "zh-CN");
@@ -634,8 +725,7 @@
 
     var activeIndex = state.hoverIndex === null ? state.selectedIndex : state.hoverIndex;
     var ordinal = activeIndex + 1 + " / " + state.filtered.length;
-    var scopeNote = scopeFilterLabel(state.scopeFilter);
-    var extNote = extensionFilterLabel(state.extFilter);
+    var filterNotes = activeFilterLabels();
     var currentFile = ensurePreview(project);
     var thumbs = folderImages(project, currentFile);
 
@@ -646,8 +736,7 @@
     els.heroKicker.textContent = [
       project.projectType,
       ordinal,
-      scopeNote,
-      extNote,
+      filterNotes.join(" · "),
       state.projects.length !== state.filtered.length ? "共 " + state.projects.length + " 件" : ""
     ].filter(Boolean).join(" · ");
     els.heroTitle.textContent = project.displayName || project.name;
@@ -666,36 +755,38 @@
   }
 
   function ensurePreview(project) {
-    if (!project || !project.imageFiles.length) {
+    var images = displayableImages(project);
+    if (!project || !images.length) {
       state.previewPath = "";
       state.previewProjectId = project ? project.id : "";
       return null;
     }
     if (state.previewProjectId !== project.id) {
       state.previewProjectId = project.id;
-      state.previewPath = project.imageFiles[0].path;
+      state.previewPath = images[0].path;
     }
-    var current = project.imageFiles.find(function (file) {
+    var current = images.find(function (file) {
       return file.path === state.previewPath;
     });
     if (!current) {
-      state.previewPath = project.imageFiles[0].path;
-      current = project.imageFiles[0];
+      state.previewPath = images[0].path;
+      current = images[0];
     }
     return current;
   }
 
   function folderImages(project, currentFile) {
     if (!project) return [];
-    if (!currentFile) return project.imageFiles.slice();
-    return project.imageFiles.filter(function (file) {
+    var images = displayableImages(project);
+    if (!currentFile) return images;
+    return images.filter(function (file) {
       return file.folderKey === currentFile.folderKey;
     });
   }
 
   function previewFile(project) {
     if (!project) return null;
-    return ensurePreview(project) || project.imageFiles[0] || null;
+    return ensurePreview(project) || primaryDisplayImage(project);
   }
 
   function renderHeroThumbs(project, thumbs, currentFile) {
@@ -808,35 +899,53 @@
       var left = cardLeft(index, metrics);
       var isActive = index === state.selectedIndex;
       var isPreview = state.hoverIndex === index && state.hoverIndex !== state.selectedIndex;
-      var button = document.createElement("button");
-      button.type = "button";
-      button.className = "timeline-card"
+      var card = document.createElement("div");
+      card.className = "timeline-card"
         + (isActive ? " active" : "")
         + (isPreview ? " is-preview" : "")
         + (metrics.layered ? " is-layered" : "");
-      button.style.left = left + "px";
-      button.style.zIndex = String(isPreview ? 200 : isActive ? 160 : index + 1);
+      card.setAttribute("role", "button");
+      card.setAttribute("tabindex", "0");
+      card.style.left = left + "px";
+      card.style.zIndex = String(isPreview ? 200 : isActive ? 160 : index + 1);
       if (metrics.layered) {
-        button.style.setProperty("--layer-depth", String(Math.min(index, 6)));
+        card.style.setProperty("--layer-depth", String(Math.min(index, 6)));
       }
-      button.style.animationDelay = Math.min(index * 32, 360) + "ms";
-      button.innerHTML = timelineCardMarkup(project);
-      button.addEventListener("click", function () {
+      card.style.animationDelay = Math.min(index * 32, 360) + "ms";
+      card.innerHTML = timelineCardMarkup(project);
+      card.addEventListener("click", function (event) {
+        if (event.target.closest(".timeline-folder-action")) return;
         selectIndex(index);
         centerActiveThumb(true);
       });
-      button.addEventListener("mouseenter", function () {
+      card.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          if (event.target.closest(".timeline-folder-action")) return;
+          event.preventDefault();
+          selectIndex(index);
+          centerActiveThumb(true);
+        }
+      });
+      var folderAction = card.querySelector(".timeline-folder-action");
+      if (folderAction) {
+        folderAction.addEventListener("click", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleProjectFolderAction(project, folderAction);
+        });
+      }
+      card.addEventListener("mouseenter", function () {
         state.hoverIndex = index;
         updateTimelineCardStates();
         renderHero();
       });
-      button.addEventListener("mouseleave", function () {
+      card.addEventListener("mouseleave", function () {
         if (state.hoverIndex !== index) return;
         state.hoverIndex = null;
         updateTimelineCardStates();
         renderHero();
       });
-      track.appendChild(button);
+      track.appendChild(card);
     });
 
     els.timeline.appendChild(track);
@@ -938,14 +1047,115 @@
     return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(date);
   }
 
+  function folderActionIcon(mode) {
+    if (mode === "copy") {
+      return [
+        '<svg viewBox="0 0 24 24" aria-hidden="true">',
+        '<rect x="9" y="9" width="11" height="11" rx="1.5" />',
+        '<path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" />',
+        "</svg>"
+      ].join("");
+    }
+    return [
+      '<svg viewBox="0 0 24 24" aria-hidden="true">',
+      '<path d="M4 8.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.5" />',
+      '<path d="M4 8.5h16V7a2 2 0 0 0-2-2h-5.2L11.4 3H6a2 2 0 0 0-2 2v3.5Z" />',
+      '<path d="M12 11v4M10 13h4" />',
+      "</svg>"
+    ].join("");
+  }
+
+  function canRevealProjectFolder(project) {
+    return !!(project && project.directoryHandle && "queryPermission" in project.directoryHandle);
+  }
+
+  async function tryRevealProjectFolder(project) {
+    if (!canRevealProjectFolder(project)) return false;
+    try {
+      var permission = await project.directoryHandle.queryPermission({ mode: "read" });
+      if (permission !== "granted") {
+        permission = await project.directoryHandle.requestPermission({ mode: "read" });
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function copyProjectPath(project) {
+    if (!project || !project.path) return false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(project.path);
+        return true;
+      }
+    } catch (error) {
+      /* fall through */
+    }
+    try {
+      var helper = document.createElement("textarea");
+      helper.value = project.path;
+      helper.setAttribute("readonly", "");
+      helper.style.position = "fixed";
+      helper.style.left = "-9999px";
+      document.body.appendChild(helper);
+      helper.select();
+      var copied = document.execCommand("copy");
+      document.body.removeChild(helper);
+      return copied;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  var folderActionTimer = null;
+
+  function showFolderActionStatus(message) {
+    if (folderActionTimer) clearTimeout(folderActionTimer);
+    setStatus(message);
+    folderActionTimer = setTimeout(function () {
+      state.statusMessage = "";
+      renderStatusBar();
+      folderActionTimer = null;
+    }, 2200);
+  }
+
+  async function handleProjectFolderAction(project, actionButton) {
+    if (!project) return;
+    var opened = await tryRevealProjectFolder(project);
+    if (opened) {
+      if (actionButton) {
+        actionButton.dataset.mode = "open";
+        actionButton.innerHTML = folderActionIcon("open");
+        actionButton.title = "打开文件夹";
+        actionButton.setAttribute("aria-label", "打开文件夹");
+      }
+      showFolderActionStatus("已打开文件夹");
+      return;
+    }
+    var copied = await copyProjectPath(project);
+    if (actionButton) {
+      actionButton.dataset.mode = "copy";
+      actionButton.innerHTML = folderActionIcon("copy");
+      actionButton.title = "复制文件夹路径";
+      actionButton.setAttribute("aria-label", "复制文件夹路径");
+    }
+    showFolderActionStatus(copied ? "已复制文件夹路径" : "复制路径失败");
+  }
+
   function timelineCardMarkup(project) {
-    var preview = project.imageFiles && project.imageFiles[0] ? project.imageFiles[0] : null;
+    var preview = primaryDisplayImage(project);
     var thumb = preview
       ? '<img src="' + objectUrl(preview.file, preview.path) + '" alt="' + escapeHtml(project.name) + '">'
       : '<div class="thumb-placeholder">' + escapeHtml(project.projectType) + "</div>";
+    var folderMode = canRevealProjectFolder(project) ? "open" : "copy";
+    var folderLabel = folderMode === "open" ? "打开文件夹" : "复制文件夹路径";
     return [
       '<div class="thumb">',
       thumb,
+      '<button type="button" class="timeline-folder-action" data-mode="' + folderMode + '" aria-label="' + folderLabel + '" title="' + folderLabel + '">',
+      folderActionIcon(folderMode),
+      "</button>",
       "</div>",
       '<div class="thumb-meta">',
       '<div class="thumb-title">' + escapeHtml(project.displayName || project.name) + "</div>",
@@ -1042,7 +1252,13 @@
     els.searchInput.addEventListener("input", applyFilters);
     els.sortSelect.addEventListener("change", applyFilters);
     if (els.scopeFilterSelect) els.scopeFilterSelect.addEventListener("change", applyFilters);
-    if (els.extFilterSelect) els.extFilterSelect.addEventListener("change", applyFilters);
+    if (els.extFilterSelect) {
+      els.extFilterSelect.addEventListener("change", function () {
+        syncExtFilterSelection();
+        applyFilters();
+      });
+    }
+    if (els.sizeFilterSelect) els.sizeFilterSelect.addEventListener("change", applyFilters);
     els.prevButton.addEventListener("click", function () {
       selectIndex(state.selectedIndex - 1);
       centerActiveThumb(true);

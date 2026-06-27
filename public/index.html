@@ -80,9 +80,15 @@
                 <option value="topLevel">仅顶层</option>
                 <option value="nested">仅子文件夹</option>
               </select>
-              <select id="extFilterSelect" class="scope-filter" aria-label="后缀筛选">
-                <option value="all">全部后缀</option>
+              <select id="extFilterSelect" class="scope-filter scope-filter-multi" multiple aria-label="后缀筛选，可多选" title="按住 Ctrl 可多选后缀">
+                <option value="all" selected>全部后缀</option>
                 <option value="sameAsCurrent">同当前后缀</option>
+              </select>
+              <select id="sizeFilterSelect" class="scope-filter" aria-label="图片大小筛选">
+                <option value="all">全部大小</option>
+                <option value="hideSmall">隐藏小图</option>
+                <option value="medium">≥512KB</option>
+                <option value="large">≥2MB</option>
               </select>
               <div class="segmented" aria-label="时间视图">
                 <button class="segment active" data-view="day" type="button">日</button>
