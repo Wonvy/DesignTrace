@@ -28,9 +28,13 @@
     objectUrlCache: new Map(),
     thumbUrlCache: new Map(),
     thumbUrlPending: new Map(),
+    imageDimsCache: new Map(),
+    imageDimsPending: new Map(),
     statusMessage: "",
     previewPath: "",
     previewProjectId: "",
+    heroCurrentFile: null,
+    heroImageDims: null,
     timelineRenderGeneration: 0,
     timelineTimeRangeCache: null,
     lastDragReleaseAt: 0
@@ -41,7 +45,11 @@
   var visibleCardsTimer = null;
   var scalingClassTimer = null;
   var heroPreviewTimer = null;
+  var heroRenderGeneration = 0;
   var HERO_PREVIEW_DELAY = 90;
+  var HERO_PREVIEW_MAX_WIDTH = 960;
+  var HERO_MAX_WIDTH = 1920;
+  var HERO_THUMB_MAX_WIDTH = 240;
   var TIMELINE_VISIBLE_BUFFER = 4;
   var TIMELINE_VIRTUALIZE_MIN = 120;
   var scanUiLastAt = 0;
@@ -102,10 +110,10 @@
   var TIMELINE = {
     cardWidth: 156,
     cardGap: 24,
-    minStep: 52,
+    minStep: 28,
     padding: 168,
     metaHeight: 52,
-    minThumbHeight: 36,
+    minThumbHeight: 30,
     scaleMin: 0.7,
     scaleMax: 8,
     scaleSteps: 100
@@ -170,12 +178,16 @@
     });
     state.thumbUrlCache.clear();
     state.thumbUrlPending.clear();
+    state.imageDimsCache.clear();
+    state.imageDimsPending.clear();
   }
 
   var THUMB_MAX_WIDTH = 360;
 
-  function thumbUrl(file, cacheKey) {
-    var key = (cacheKey || file.name + ":" + file.lastModified + ":" + file.size) + "@thumb";
+  function scaledImageUrl(file, cacheKey, maxWidth, jpegQuality) {
+    jpegQuality = jpegQuality || 0.82;
+    var baseKey = cacheKey || file.name + ":" + file.lastModified + ":" + file.size;
+    var key = baseKey + "@" + maxWidth;
     if (state.thumbUrlCache.has(key)) {
       return Promise.resolve(state.thumbUrlCache.get(key));
     }
@@ -187,7 +199,7 @@
       state.thumbUrlCache.set(key, fallback);
       return Promise.resolve(fallback);
     }
-    var promise = createImageBitmap(file, { resizeWidth: THUMB_MAX_WIDTH, resizeQuality: "medium" })
+    var promise = createImageBitmap(file, { resizeWidth: maxWidth, resizeQuality: "medium" })
       .then(function (bitmap) {
         var canvas = document.createElement("canvas");
         canvas.width = bitmap.width;
@@ -204,7 +216,7 @@
             var url = URL.createObjectURL(blob);
             state.thumbUrlCache.set(key, url);
             resolve(url);
-          }, "image/jpeg", 0.82);
+          }, "image/jpeg", jpegQuality);
         });
       })
       .catch(function () {
@@ -217,6 +229,64 @@
       });
     state.thumbUrlPending.set(key, promise);
     return promise;
+  }
+
+  function thumbUrl(file, cacheKey) {
+    return scaledImageUrl(file, cacheKey, THUMB_MAX_WIDTH);
+  }
+
+  function heroImageUrl(file, cacheKey, hoverPreview) {
+    return scaledImageUrl(
+      file,
+      cacheKey,
+      hoverPreview ? HERO_PREVIEW_MAX_WIDTH : HERO_MAX_WIDTH,
+      hoverPreview ? 0.78 : 0.85
+    );
+  }
+
+  function ensureImageDimensions(file, cacheKey) {
+    var key = cacheKey || file.name + ":" + file.lastModified + ":" + file.size;
+    if (state.imageDimsCache.has(key)) {
+      return Promise.resolve(state.imageDimsCache.get(key));
+    }
+    if (state.imageDimsPending.has(key)) {
+      return state.imageDimsPending.get(key);
+    }
+    if (typeof createImageBitmap !== "function") {
+      return Promise.resolve(null);
+    }
+    var promise = createImageBitmap(file)
+      .then(function (bitmap) {
+        var dims = { w: bitmap.width, h: bitmap.height };
+        bitmap.close();
+        state.imageDimsCache.set(key, dims);
+        return dims;
+      })
+      .catch(function () {
+        return null;
+      })
+      .finally(function () {
+        state.imageDimsPending.delete(key);
+      });
+    state.imageDimsPending.set(key, promise);
+    return promise;
+  }
+
+  function scheduleImageDimensions(file, cacheKey, onReady) {
+    var run = function () {
+      ensureImageDimensions(file, cacheKey).then(function (dims) {
+        if (dims && typeof onReady === "function") onReady(dims);
+      });
+    };
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(run, { timeout: 2000 });
+    } else {
+      setTimeout(run, 0);
+    }
+  }
+
+  function invalidateHeroImageLoad() {
+    heroRenderGeneration += 1;
   }
 
   function objectUrl(file, cacheKey) {
@@ -809,11 +879,13 @@
       clearTimeout(heroPreviewTimer);
       heroPreviewTimer = null;
     }
+    invalidateHeroImageLoad();
   }
 
   function setTimelineHover(index) {
     var nextHover = index === state.selectedIndex ? null : index;
     if (state.hoverIndex === nextHover) return;
+    invalidateHeroImageLoad();
     state.hoverIndex = nextHover;
     updateTimelineCardStates();
     scheduleHeroPreview();
@@ -821,6 +893,7 @@
 
   function clearTimelineHover() {
     if (state.hoverIndex === null) return;
+    invalidateHeroImageLoad();
     state.hoverIndex = null;
     updateTimelineCardStates();
     scheduleHeroPreview();
@@ -868,7 +941,9 @@
     var hoverPreview = isHeroHoverPreview();
 
     if (!selectedProject || !displayProject) {
+      invalidateHeroImageLoad();
       els.heroArtwork.innerHTML = "";
+      els.heroArtwork.classList.remove("is-loading");
       els.heroThumbs.innerHTML = "";
       els.heroThumbs.hidden = true;
       els.slideshowStage.classList.remove("has-thumbs", "is-preview");
@@ -884,8 +959,13 @@
     var currentFile = hoverPreview ? primaryDisplayImage(displayProject) : ensurePreview(selectedProject);
     var thumbs = hoverPreview ? [] : folderImages(selectedProject, currentFile);
 
-    els.heroArtwork.innerHTML = artworkMarkup(displayProject, currentFile);
-    renderHeroThumbs(selectedProject, thumbs, currentFile);
+    state.heroCurrentFile = currentFile || null;
+    if (!currentFile || !state.heroImageDims || state.heroImageDims.path !== currentFile.path) {
+      state.heroImageDims = null;
+    }
+
+    loadHeroArtwork(displayProject, currentFile, hoverPreview);
+    renderHeroThumbs(selectedProject, thumbs, currentFile, hoverPreview);
     els.slideshowStage.classList.toggle("has-thumbs", thumbs.length > 1);
     els.slideshowStage.classList.toggle("is-preview", hoverPreview);
     els.heroKicker.textContent = [
@@ -900,6 +980,79 @@
       + " · " + formatBytes(displayProject.sizeBytes)
       + " · " + displayProject.fileCount + " 个文件";
     renderStatusBar();
+  }
+
+  function loadHeroArtwork(displayProject, currentFile, hoverPreview) {
+    var preview = currentFile || previewFile(displayProject);
+    var gen = ++heroRenderGeneration;
+
+    if (!preview || !IMAGE_EXTENSIONS.has(preview.extension)) {
+      els.heroArtwork.classList.remove("is-loading");
+      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, displayProject.path);
+      return;
+    }
+
+    els.heroArtwork.classList.add("is-loading");
+    els.heroArtwork.innerHTML = '<span class="hero-spinner" aria-hidden="true"></span>';
+
+    heroImageUrl(preview.file, preview.path, hoverPreview).then(function (url) {
+      if (gen !== heroRenderGeneration) return;
+      if (!els.heroArtwork.isConnected) return;
+      if (state.heroCurrentFile && state.heroCurrentFile.path !== preview.path) return;
+
+      var img = document.createElement("img");
+      img.className = "art-image";
+      img.alt = preview.name;
+      img.decoding = "async";
+      var settle = function () {
+        if (gen !== heroRenderGeneration) return;
+        if (!img.isConnected) return;
+        els.heroArtwork.classList.remove("is-loading");
+        captureHeroImageDimensions(preview, gen);
+      };
+      img.addEventListener("load", settle, { once: true });
+      img.addEventListener("error", settle, { once: true });
+      els.heroArtwork.innerHTML = "";
+      els.heroArtwork.appendChild(img);
+      img.src = url;
+      if (img.complete) settle();
+    }).catch(function () {
+      if (gen !== heroRenderGeneration) return;
+      els.heroArtwork.classList.remove("is-loading");
+      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, displayProject.path);
+    });
+
+    if (!hoverPreview) {
+      scheduleImageDimensions(preview.file, preview.path, function (dims) {
+        if (gen !== heroRenderGeneration) return;
+        if (!state.heroCurrentFile || state.heroCurrentFile.path !== preview.path) return;
+        state.heroImageDims = { path: preview.path, w: dims.w, h: dims.h };
+        renderStatusBar();
+      });
+    }
+  }
+
+  function captureHeroImageDimensions(currentFile, gen) {
+    if (!currentFile) return;
+    var artImg = els.heroArtwork.querySelector(".art-image");
+    if (!artImg) return;
+    var dimPath = currentFile.path;
+    var applyDims = function () {
+      if (gen !== undefined && gen !== heroRenderGeneration) return;
+      if (!artImg.isConnected) return;
+      if (!artImg.naturalWidth) return;
+      if (state.heroImageDims && state.heroImageDims.path === dimPath && state.heroImageDims.w > artImg.naturalWidth) {
+        renderStatusBar();
+        return;
+      }
+      state.heroImageDims = { path: dimPath, w: artImg.naturalWidth, h: artImg.naturalHeight };
+      if (state.heroCurrentFile && state.heroCurrentFile.path === dimPath) renderStatusBar();
+    };
+    if (artImg.complete && artImg.naturalWidth) {
+      applyDims();
+    } else {
+      artImg.addEventListener("load", applyDims, { once: true });
+    }
   }
 
   function updateTimelineCardStates() {
@@ -949,25 +1102,39 @@
     return ensurePreview(project) || primaryDisplayImage(project);
   }
 
-  function renderHeroThumbs(project, thumbs, currentFile) {
+  function renderHeroThumbs(project, thumbs, currentFile, hoverPreview) {
     els.heroThumbs.innerHTML = "";
-    if (!thumbs || thumbs.length <= 1) {
+    if (hoverPreview || !thumbs || thumbs.length <= 1) {
       els.heroThumbs.hidden = true;
       return;
     }
+    var gen = heroRenderGeneration;
     els.heroThumbs.hidden = false;
     thumbs.forEach(function (file) {
       var button = document.createElement("button");
       button.type = "button";
       button.className = "hero-thumb" + (currentFile && file.path === currentFile.path ? " active" : "");
       button.title = file.name;
-      button.innerHTML = '<img src="' + objectUrl(file.file, file.path) + '" alt="' + escapeHtml(file.name) + '">';
+      button.innerHTML = '<span class="hero-thumb-spinner" aria-hidden="true"></span>'
+        + '<img class="hero-thumb-lazy" alt="' + escapeHtml(file.name) + '">';
       button.addEventListener("click", function () {
         state.previewPath = file.path;
         state.previewProjectId = project.id;
         renderHero();
       });
       els.heroThumbs.appendChild(button);
+
+      scaledImageUrl(file.file, file.path, HERO_THUMB_MAX_WIDTH, 0.78).then(function (url) {
+        if (gen !== heroRenderGeneration) return;
+        var img = button.querySelector("img.hero-thumb-lazy");
+        if (!img || !img.isConnected) return;
+        img.src = url;
+        img.classList.remove("hero-thumb-lazy");
+        button.classList.remove("is-loading");
+      }).catch(function () {
+        button.classList.remove("is-loading");
+      });
+      button.classList.add("is-loading");
     });
     var activeThumb = els.heroThumbs.querySelector(".hero-thumb.active");
     if (activeThumb) {
@@ -1001,7 +1168,7 @@
     var preview = currentFile || previewFile(project);
 
     if (preview && IMAGE_EXTENSIONS.has(preview.extension)) {
-      return '<img class="art-image" src="' + objectUrl(preview.file, preview.path) + '" alt="' + escapeHtml(preview.name) + '">';
+      return '<img class="art-image art-image-lazy" alt="' + escapeHtml(preview.name) + '">';
     }
     return emptyArtwork(project.displayName || project.name, project.path);
   }
@@ -1300,7 +1467,7 @@
       return;
     }
 
-    var preview = previewFile(project);
+    var preview = state.heroCurrentFile || previewFile(project);
     if (state.statusMessage) {
       els.statusPath.textContent = state.statusMessage;
       if (els.statusbar) els.statusbar.classList.add("is-status-notice");
@@ -1308,9 +1475,15 @@
       els.statusPath.textContent = project.path;
       if (els.statusbar) els.statusbar.classList.remove("is-status-notice");
     }
-    els.statusFile.textContent = preview
-      ? preview.name + " · " + formatBytes(preview.sizeBytes)
-      : "";
+    if (preview) {
+      var fileText = preview.name + " · " + formatBytes(preview.sizeBytes);
+      if (state.heroImageDims && state.heroImageDims.path === preview.path) {
+        fileText += " · " + state.heroImageDims.w + "×" + state.heroImageDims.h + " px";
+      }
+      els.statusFile.textContent = fileText;
+    } else {
+      els.statusFile.textContent = "";
+    }
     els.statusStats.textContent = [
       project.projectType,
       project.fileCount + " 个文件",
@@ -1586,6 +1759,7 @@
   function timelineCardMarkup(project, options) {
     options = options || {};
     var preview = primaryDisplayImage(project);
+    var lazyPending = preview && options.lazyThumb;
     var thumb = preview
       ? (options.lazyThumb
         ? '<img class="timeline-thumb-lazy" alt="' + escapeHtml(project.name) + '" data-thumb-path="' + escapeHtml(preview.path) + '">'
@@ -1594,7 +1768,8 @@
     var folderMode = canRevealProjectFolder(project) ? "open" : "copy";
     var folderLabel = folderMode === "open" ? "打开文件夹" : "复制文件夹路径";
     return [
-      '<div class="thumb">',
+      '<div class="thumb' + (lazyPending ? " is-loading" : "") + '">',
+      lazyPending ? '<span class="thumb-spinner" aria-hidden="true"></span>' : "",
       thumb,
       '<button type="button" class="timeline-folder-action" data-mode="' + folderMode + '" aria-label="' + folderLabel + '" title="' + folderLabel + '">',
       folderActionIcon(folderMode),
@@ -1612,10 +1787,17 @@
     if (!img || img.getAttribute("src")) return;
     var preview = primaryDisplayImage(project);
     if (!preview) return;
-    img.classList.remove("timeline-thumb-lazy");
+    var thumb = img.closest(".thumb");
+    var settle = function () {
+      img.classList.remove("timeline-thumb-lazy");
+      if (thumb) thumb.classList.remove("is-loading");
+    };
     thumbUrl(preview.file, preview.path).then(function (url) {
-      if (img.isConnected) img.src = url;
-    });
+      if (!img.isConnected) return;
+      img.addEventListener("load", settle, { once: true });
+      img.addEventListener("error", settle, { once: true });
+      img.src = url;
+    }).catch(settle);
   }
 
   function stageLabel(project) {
