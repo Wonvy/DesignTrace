@@ -65,6 +65,14 @@
 
       <section class="timeline-panel">
         <div class="timeline-top">
+          <div class="timeline-period-filter">
+            <select id="timelineYearSelect" class="timeline-period-select" aria-label="年份" disabled>
+              <option value="">年份</option>
+            </select>
+            <select id="timelineMonthSelect" class="timeline-period-select" aria-label="月份" disabled>
+              <option value="">月份</option>
+            </select>
+          </div>
           <section class="project-info" aria-live="polite">
             <h1 id="heroTitle" class="project-title">选择文件夹开始</h1>
             <p class="project-detail">
@@ -128,15 +136,18 @@
               </svg>
             </button>
             <div class="heatmap-panel-body">
-              <div class="heatmap-heading-row">
-                <div class="heatmap-heading">活动日历</div>
-                <div class="heatmap-period-bar" aria-live="polite">
-                  <span id="heatmapPeriodPrev" class="heatmap-period-side"></span>
-                  <strong id="heatmapPeriod" class="heatmap-period-current">—</strong>
-                  <span id="heatmapPeriodNext" class="heatmap-period-side"></span>
+              <div class="heatmap-nav">
+                <select id="heatmapYearSelect" class="heatmap-nav-select" aria-label="年份" disabled></select>
+                <div class="heatmap-month-nav">
+                  <button id="heatmapPrevMonth" class="heatmap-nav-arrow" type="button" aria-label="上个月" disabled>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 7.5 9 12l5.5 4.5" /></svg>
+                  </button>
+                  <select id="heatmapMonthSelect" class="heatmap-nav-select" aria-label="月份" disabled></select>
+                  <button id="heatmapNextMonth" class="heatmap-nav-arrow" type="button" aria-label="下个月" disabled>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 7.5 15 12l-5.5 4.5" /></svg>
+                  </button>
                 </div>
               </div>
-              <p class="heatmap-wheel-hint">滚轮切换月份</p>
               <div id="heatmap" class="heatmap" role="application" aria-label="按月浏览项目活动日历"></div>
             </div>
           </aside>

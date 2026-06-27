@@ -40,7 +40,9 @@
     heatmapCollapsed: false,
     heatmapHoverDay: "",
     heatmapViewYear: null,
-    heatmapViewMonth: null
+    heatmapViewMonth: null,
+    timelinePeriodSyncLock: false,
+    heatmapNavSyncLock: false
   };
 
   var timelineLayoutFrame = null;
@@ -55,6 +57,7 @@
   var HERO_THUMB_MAX_WIDTH = 240;
   var TIMELINE_VISIBLE_BUFFER = 4;
   var TIMELINE_VIRTUALIZE_MIN = 120;
+  var TIMELINE_THUMB_MAX_IMAGES = 4;
   var HEATMAP_TOOLTIP_LIMIT = 8;
   var HEATMAP_WHEEL_COOLDOWN = 120;
   var scanUiLastAt = 0;
@@ -77,12 +80,15 @@
     scanOverlay: document.getElementById("scanOverlay"),
     scanText: document.getElementById("scanText"),
     timeline: document.getElementById("timeline"),
+    timelineYearSelect: document.getElementById("timelineYearSelect"),
+    timelineMonthSelect: document.getElementById("timelineMonthSelect"),
     heatmapPanel: document.getElementById("heatmapPanel"),
     heatmapToggle: document.getElementById("heatmapToggle"),
     heatmap: document.getElementById("heatmap"),
-    heatmapPeriod: document.getElementById("heatmapPeriod"),
-    heatmapPeriodPrev: document.getElementById("heatmapPeriodPrev"),
-    heatmapPeriodNext: document.getElementById("heatmapPeriodNext"),
+    heatmapYearSelect: document.getElementById("heatmapYearSelect"),
+    heatmapMonthSelect: document.getElementById("heatmapMonthSelect"),
+    heatmapPrevMonth: document.getElementById("heatmapPrevMonth"),
+    heatmapNextMonth: document.getElementById("heatmapNextMonth"),
     heatmapTooltip: document.getElementById("heatmapTooltip"),
     autoplayButton: document.getElementById("autoplayButton"),
     scopeFilterSelect: document.getElementById("scopeFilterSelect"),
@@ -810,6 +816,32 @@
     return images[0] || null;
   }
 
+  function timelineDisplayImages(project) {
+    return displayableImages(project).slice(0, TIMELINE_THUMB_MAX_IMAGES);
+  }
+
+  function timelineThumbImageMarkup(file, lazyThumb) {
+    if (lazyThumb) {
+      return '<img class="timeline-thumb-lazy" alt="" data-thumb-path="' + escapeHtml(file.path) + '">';
+    }
+    return '<img src="' + objectUrl(file.file, file.path) + '" alt="">';
+  }
+
+  function timelineThumbContent(project, options) {
+    options = options || {};
+    var images = timelineDisplayImages(project);
+    if (!images.length) {
+      return '<div class="thumb-placeholder">' + escapeHtml(project.projectType) + "</div>";
+    }
+    if (images.length === 1) {
+      return timelineThumbImageMarkup(images[0], options.lazyThumb);
+    }
+    var cells = images.map(function (file) {
+      return '<div class="thumb-grid-cell">' + timelineThumbImageMarkup(file, options.lazyThumb) + "</div>";
+    }).join("");
+    return '<div class="thumb-grid thumb-grid--' + images.length + '">' + cells + "</div>";
+  }
+
   function sizeFilterLabel(sizeFilter) {
     if (sizeFilter === "hideSmall") return "隐藏小图";
     if (sizeFilter === "medium") return "≥512KB";
@@ -1102,6 +1134,7 @@
     renderControls();
     scheduleVisibleCardsSync();
     if (options.center !== false) centerActiveThumb(true);
+    updateTimelinePeriodFilters();
     renderHeatmap({ syncToSelection: true });
   }
 
@@ -1110,6 +1143,7 @@
     renderTimeline();
     renderHeatmap();
     renderControls();
+    updateTimelinePeriodFilters();
   }
 
   function renderHero() {
@@ -1232,6 +1266,172 @@
 
   function projectTimelineDate(project) {
     return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt);
+  }
+
+  function timelineAvailableYears() {
+    var years = new Set();
+    state.filtered.forEach(function (project) {
+      var date = projectTimelineDate(project);
+      if (Number.isFinite(date.getTime())) years.add(date.getFullYear());
+    });
+    return Array.from(years).sort(function (a, b) {
+      return a - b;
+    });
+  }
+
+  function timelineAvailableMonths(year) {
+    var months = new Set();
+    state.filtered.forEach(function (project) {
+      var date = projectTimelineDate(project);
+      if (!Number.isFinite(date.getTime()) || date.getFullYear() !== year) return;
+      months.add(date.getMonth());
+    });
+    return Array.from(months).sort(function (a, b) {
+      return a - b;
+    });
+  }
+
+  function timelinePeriodAtIndex(index) {
+    var project = state.filtered[index];
+    if (!project) return null;
+    var date = projectTimelineDate(project);
+    if (!Number.isFinite(date.getTime())) return null;
+    return { year: date.getFullYear(), month: date.getMonth() };
+  }
+
+  function timelineViewportCenterIndex(metrics) {
+    metrics = metrics || state.cachedTimelineMetrics || timelineMetrics();
+    var viewport = els.timeline.clientWidth || 0;
+    if (!state.filtered.length) return 0;
+    var viewportCenter = -state.timelineOffset + viewport / 2;
+    var bestIndex = 0;
+    var bestDistance = Infinity;
+    for (var index = 0; index < state.filtered.length; index += 1) {
+      var distance = Math.abs(cardCenter(index, metrics) - viewportCenter);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    }
+    return bestIndex;
+  }
+
+  function currentTimelinePeriodFromViewport() {
+    var period = timelinePeriodAtIndex(timelineViewportCenterIndex());
+    if (period) return period;
+    return timelinePeriodAtIndex(state.selectedIndex);
+  }
+
+  function syncTimelinePeriodFiltersFromViewport() {
+    if (!els.timelineYearSelect || !els.timelineMonthSelect) return;
+    if (!state.filtered.length || state.timelinePeriodSyncLock) return;
+    var period = currentTimelinePeriodFromViewport();
+    if (!period) return;
+    var yearValue = parseInt(els.timelineYearSelect.value, 10);
+    var monthValue = parseInt(els.timelineMonthSelect.value, 10);
+    if (yearValue === period.year && monthValue === period.month) return;
+    state.timelinePeriodSyncLock = true;
+    populateTimelineYearSelect(period.year);
+    populateTimelineMonthSelect(period.year, period.month);
+    state.timelinePeriodSyncLock = false;
+  }
+
+  function findFirstIndexForPeriod(year, month) {
+    for (var index = 0; index < state.filtered.length; index += 1) {
+      var date = projectTimelineDate(state.filtered[index]);
+      if (!Number.isFinite(date.getTime())) continue;
+      if (date.getFullYear() === year && date.getMonth() === month) return index;
+    }
+    return -1;
+  }
+
+  function findFirstIndexForYear(year) {
+    for (var index = 0; index < state.filtered.length; index += 1) {
+      var date = projectTimelineDate(state.filtered[index]);
+      if (Number.isFinite(date.getTime()) && date.getFullYear() === year) return index;
+    }
+    return -1;
+  }
+
+  function populateTimelineYearSelect(selectedYear) {
+    if (!els.timelineYearSelect) return null;
+    var years = timelineAvailableYears();
+    els.timelineYearSelect.innerHTML = years.map(function (year) {
+      return '<option value="' + year + '">' + year + "年</option>";
+    }).join("");
+    if (!years.length) return null;
+    var nextYear = years.indexOf(selectedYear) >= 0 ? selectedYear : years[0];
+    els.timelineYearSelect.value = String(nextYear);
+    return nextYear;
+  }
+
+  function populateTimelineMonthSelect(year, selectedMonth) {
+    if (!els.timelineMonthSelect) return null;
+    var months = timelineAvailableMonths(year);
+    els.timelineMonthSelect.innerHTML = months.map(function (month) {
+      return '<option value="' + month + '">' + (month + 1) + "月</option>";
+    }).join("");
+    if (!months.length) return null;
+    var nextMonth = months.indexOf(selectedMonth) >= 0 ? selectedMonth : months[0];
+    els.timelineMonthSelect.value = String(nextMonth);
+    return nextMonth;
+  }
+
+  function updateTimelinePeriodFilters() {
+    if (!els.timelineYearSelect || !els.timelineMonthSelect) return;
+    if (!state.filtered.length) {
+      els.timelineYearSelect.disabled = true;
+      els.timelineMonthSelect.disabled = true;
+      els.timelineYearSelect.innerHTML = '<option value="">年份</option>';
+      els.timelineMonthSelect.innerHTML = '<option value="">月份</option>';
+      return;
+    }
+
+    els.timelineYearSelect.disabled = false;
+    els.timelineMonthSelect.disabled = false;
+    var period = currentTimelinePeriodFromViewport();
+    if (!period) {
+      var fallbackDate = projectTimelineDate(state.filtered[0]);
+      period = {
+        year: fallbackDate.getFullYear(),
+        month: fallbackDate.getMonth()
+      };
+    }
+
+    state.timelinePeriodSyncLock = true;
+    var year = populateTimelineYearSelect(period.year);
+    var month = year == null ? null : populateTimelineMonthSelect(year, period.month);
+    state.timelinePeriodSyncLock = false;
+    return { year: year, month: month };
+  }
+
+  function navigateToTimelinePeriod(year, month) {
+    if (!Number.isFinite(year) || !Number.isFinite(month)) return;
+    var index = findFirstIndexForPeriod(year, month);
+    if (index < 0) index = findFirstIndexForYear(year);
+    if (index < 0) return;
+    state.heatmapViewYear = year;
+    state.heatmapViewMonth = month;
+    selectIndex(index, { center: true });
+  }
+
+  function onTimelineYearChange() {
+    if (state.timelinePeriodSyncLock || !els.timelineYearSelect || !els.timelineMonthSelect) return;
+    var year = parseInt(els.timelineYearSelect.value, 10);
+    if (!Number.isFinite(year)) return;
+    var months = timelineAvailableMonths(year);
+    if (!months.length) return;
+    state.timelinePeriodSyncLock = true;
+    var month = populateTimelineMonthSelect(year, months[0]);
+    state.timelinePeriodSyncLock = false;
+    navigateToTimelinePeriod(year, month);
+  }
+
+  function onTimelineMonthChange() {
+    if (state.timelinePeriodSyncLock || !els.timelineYearSelect || !els.timelineMonthSelect) return;
+    var year = parseInt(els.timelineYearSelect.value, 10);
+    var month = parseInt(els.timelineMonthSelect.value, 10);
+    navigateToTimelinePeriod(year, month);
   }
 
   function updateTimelineCardStates() {
@@ -1571,31 +1771,13 @@
 
   function appendTimelineAxisTick(track, x) {
     var tick = document.createElement("div");
-    tick.className = "tick major";
+    tick.className = "tick";
     tick.style.left = x + "px";
     track.appendChild(tick);
   }
 
-  function appendTimelineAxisLabel(track, x, html, classNames, align) {
-    var label = document.createElement("div");
-    label.className = "tick-label " + classNames.join(" ");
-    label.style.left = x + "px";
-    if (align === "start") label.classList.add("tick-label-start");
-    else if (align === "end") label.classList.add("tick-label-end");
-    label.innerHTML = html;
-    track.appendChild(label);
-  }
-
-  function timelineAxisMonthHtml(month) {
-    return '<span class="tick-month-num">' + month + '</span><span class="tick-month-suffix">月</span>';
-  }
-
-  function timelineAxisYearHtml(year) {
-    return '<span class="tick-year-num">' + year + '</span><span class="tick-year-suffix">年</span>';
-  }
-
   function renderTicks(track, metrics) {
-    track.querySelectorAll(".tick, .tick-label").forEach(function (node) {
+    track.querySelectorAll(".tick").forEach(function (node) {
       node.remove();
     });
     var count = state.filtered.length;
@@ -1605,44 +1787,7 @@
       var project = state.filtered[index];
       var date = projectTimelineDate(project);
       if (!Number.isFinite(date.getTime())) continue;
-
-      var year = date.getFullYear();
-      var month = date.getMonth() + 1;
-      var day = date.getDate();
-      var x = cardCenter(index, metrics);
-      var align = index === 0 ? "start" : (index === count - 1 ? "end" : "center");
-
-      appendTimelineAxisTick(track, x);
-
-      var prev = index > 0 ? projectTimelineDate(state.filtered[index - 1]) : null;
-      var prevValid = prev && Number.isFinite(prev.getTime());
-      var prevYear = prevValid ? prev.getFullYear() : null;
-      var prevMonth = prevValid ? prev.getMonth() + 1 : null;
-
-      if (index > 0 && prevValid && year !== prevYear) {
-        var xBetween = (cardCenter(index - 1, metrics) + x) / 2;
-        appendTimelineAxisLabel(track, xBetween, timelineAxisYearHtml(year), ["tick-label-year"], "center");
-      }
-
-      if (index === 0) {
-        appendTimelineAxisLabel(
-          track,
-          x,
-          timelineAxisYearHtml(year) + timelineAxisMonthHtml(month),
-          ["tick-label-month", "tick-label-year-month"],
-          align
-        );
-      } else if (!prevValid || year !== prevYear || month !== prevMonth) {
-        appendTimelineAxisLabel(track, x, timelineAxisMonthHtml(month), ["tick-label-month"], align);
-      } else {
-        appendTimelineAxisLabel(
-          track,
-          x,
-          '<span class="tick-day-num">' + day + "</span>",
-          ["tick-label-day"],
-          align
-        );
-      }
+      appendTimelineAxisTick(track, cardCenter(index, metrics));
     }
   }
 
@@ -1826,30 +1971,91 @@
     return true;
   }
 
-  function heatmapAdjacentYears() {
+  function heatmapNavYears() {
     var range = heatmapProjectRange();
-    if (!range || state.heatmapViewYear === null || state.heatmapViewMonth === null) {
-      return { prev: "", next: "" };
-    }
-    var prev = "";
-    var next = "";
-    if (state.heatmapViewYear > range.minYear) {
-      prev = String(state.heatmapViewYear - 1) + "年";
-    }
-    if (state.heatmapViewYear < range.maxYear) {
-      next = String(state.heatmapViewYear + 1) + "年";
-    }
-    return { prev: prev, next: next };
+    if (!range) return [];
+    var years = [];
+    for (var year = range.minYear; year <= range.maxYear; year += 1) years.push(year);
+    return years;
   }
 
-  function updateHeatmapPeriodLabel() {
-    if (state.heatmapViewYear === null || state.heatmapViewMonth === null) return;
-    var adjacent = heatmapAdjacentYears();
-    if (els.heatmapPeriod) {
-      els.heatmapPeriod.textContent = state.heatmapViewYear + "年 " + (state.heatmapViewMonth + 1) + "月";
+  function heatmapNavMonths(year) {
+    var range = heatmapProjectRange();
+    if (!range) return [];
+    var months = [];
+    for (var month = 0; month < 12; month += 1) {
+      var idx = heatmapViewIndex(year, month);
+      var minIdx = heatmapViewIndex(range.minYear, range.minMonth);
+      var maxIdx = heatmapViewIndex(range.maxYear, range.maxMonth);
+      if (idx >= minIdx && idx <= maxIdx) months.push(month);
     }
-    if (els.heatmapPeriodPrev) els.heatmapPeriodPrev.textContent = adjacent.prev;
-    if (els.heatmapPeriodNext) els.heatmapPeriodNext.textContent = adjacent.next;
+    return months;
+  }
+
+  function updateHeatmapNavControls() {
+    if (!els.heatmapYearSelect || !els.heatmapMonthSelect) return;
+    var range = heatmapProjectRange();
+    if (!range || !state.filtered.length) {
+      els.heatmapYearSelect.disabled = true;
+      els.heatmapMonthSelect.disabled = true;
+      if (els.heatmapPrevMonth) els.heatmapPrevMonth.disabled = true;
+      if (els.heatmapNextMonth) els.heatmapNextMonth.disabled = true;
+      els.heatmapYearSelect.innerHTML = "";
+      els.heatmapMonthSelect.innerHTML = "";
+      return;
+    }
+
+    ensureHeatmapViewInitialized();
+    els.heatmapYearSelect.disabled = false;
+    els.heatmapMonthSelect.disabled = false;
+
+    state.heatmapNavSyncLock = true;
+    if (els.heatmapYearSelect) {
+      els.heatmapYearSelect.innerHTML = heatmapNavYears().map(function (y) {
+        return '<option value="' + y + '">' + y + "年</option>";
+      }).join("");
+      els.heatmapYearSelect.value = String(state.heatmapViewYear);
+    }
+    var months = heatmapNavMonths(state.heatmapViewYear);
+    if (els.heatmapMonthSelect) {
+      els.heatmapMonthSelect.innerHTML = months.map(function (m) {
+        return '<option value="' + m + '">' + (m + 1) + "月</option>";
+      }).join("");
+      if (months.indexOf(state.heatmapViewMonth) >= 0) {
+        els.heatmapMonthSelect.value = String(state.heatmapViewMonth);
+      } else if (months.length) {
+        state.heatmapViewMonth = months[0];
+        els.heatmapMonthSelect.value = String(months[0]);
+      }
+    }
+    state.heatmapNavSyncLock = false;
+
+    var idx = heatmapViewIndex(state.heatmapViewYear, state.heatmapViewMonth);
+    var minIdx = heatmapViewIndex(range.minYear, range.minMonth);
+    var maxIdx = heatmapViewIndex(range.maxYear, range.maxMonth);
+    if (els.heatmapPrevMonth) els.heatmapPrevMonth.disabled = idx <= minIdx;
+    if (els.heatmapNextMonth) els.heatmapNextMonth.disabled = idx >= maxIdx;
+  }
+
+  function onHeatmapYearChange() {
+    if (state.heatmapNavSyncLock || !els.heatmapYearSelect) return;
+    var year = parseInt(els.heatmapYearSelect.value, 10);
+    if (!Number.isFinite(year)) return;
+    var months = heatmapNavMonths(year);
+    if (!months.length) return;
+    state.heatmapViewYear = year;
+    state.heatmapViewMonth = months.indexOf(state.heatmapViewMonth) >= 0 ? state.heatmapViewMonth : months[0];
+    renderHeatmap();
+  }
+
+  function onHeatmapMonthChange() {
+    if (state.heatmapNavSyncLock || !els.heatmapMonthSelect) return;
+    var year = parseInt(els.heatmapYearSelect.value, 10);
+    var month = parseInt(els.heatmapMonthSelect.value, 10);
+    if (!Number.isFinite(year) || !Number.isFinite(month)) return;
+    state.heatmapViewYear = year;
+    state.heatmapViewMonth = month;
+    renderHeatmap();
   }
 
   function buildHeatmapMonthGrid(year, monthIndex, buckets) {
@@ -2004,12 +2210,10 @@
     }
 
     if (state.heatmapCollapsed || !state.filtered.length) {
-      if (els.heatmapPeriod) els.heatmapPeriod.textContent = "—";
-      if (els.heatmapPeriodPrev) els.heatmapPeriodPrev.textContent = "";
-      if (els.heatmapPeriodNext) els.heatmapPeriodNext.textContent = "";
       if (!state.heatmapCollapsed && !state.filtered.length) {
         els.heatmap.innerHTML = '<div class="heatmap-empty">无数据</div>';
       }
+      updateHeatmapNavControls();
       return;
     }
 
@@ -2019,7 +2223,7 @@
       ensureHeatmapViewInitialized();
     }
     clampHeatmapView();
-    updateHeatmapPeriodLabel();
+    updateHeatmapNavControls();
 
     var buckets = buildHeatmapBuckets();
     var monthBlock = buildHeatmapMonthGrid(state.heatmapViewYear, state.heatmapViewMonth, buckets);
@@ -2338,19 +2542,14 @@
 
   function timelineCardMarkup(project, options) {
     options = options || {};
-    var preview = primaryDisplayImage(project);
-    var lazyPending = preview && options.lazyThumb;
-    var thumb = preview
-      ? (options.lazyThumb
-        ? '<img class="timeline-thumb-lazy" alt="' + escapeHtml(project.name) + '" data-thumb-path="' + escapeHtml(preview.path) + '">'
-        : '<img src="' + objectUrl(preview.file, preview.path) + '" alt="' + escapeHtml(project.name) + '">')
-      : '<div class="thumb-placeholder">' + escapeHtml(project.projectType) + "</div>";
+    var images = timelineDisplayImages(project);
+    var lazyPending = images.length && options.lazyThumb;
     var folderMode = canRevealProjectFolder(project) ? "open" : "copy";
     var folderLabel = folderMode === "open" ? "打开文件夹" : "复制文件夹路径";
     return [
       '<div class="thumb' + (lazyPending ? " is-loading" : "") + '">',
       lazyPending ? '<span class="thumb-spinner" aria-hidden="true"></span>' : "",
-      thumb,
+      timelineThumbContent(project, options),
       '<button type="button" class="timeline-folder-action" data-mode="' + folderMode + '" aria-label="' + folderLabel + '" title="' + folderLabel + '">',
       folderActionIcon(folderMode),
       "</button>",
@@ -2362,21 +2561,35 @@
   }
 
   function hydrateTimelineCardThumb(card, project) {
-    var img = card.querySelector("img.timeline-thumb-lazy");
-    if (!img || img.getAttribute("src")) return;
-    var preview = primaryDisplayImage(project);
-    if (!preview) return;
-    var thumb = img.closest(".thumb");
+    var lazyImages = card.querySelectorAll("img.timeline-thumb-lazy");
+    if (!lazyImages.length) return;
+    var previews = timelineDisplayImages(project);
+    if (!previews.length) return;
+    var thumb = card.querySelector(".thumb");
+    var pending = 0;
     var settle = function () {
-      img.classList.remove("timeline-thumb-lazy");
-      if (thumb) thumb.classList.remove("is-loading");
+      pending -= 1;
+      if (pending <= 0 && thumb) thumb.classList.remove("is-loading");
     };
-    thumbUrl(preview.file, preview.path).then(function (url) {
-      if (!img.isConnected) return;
-      img.addEventListener("load", settle, { once: true });
-      img.addEventListener("error", settle, { once: true });
-      img.src = url;
-    }).catch(settle);
+    lazyImages.forEach(function (img, index) {
+      if (img.getAttribute("src")) return;
+      var preview = previews[index];
+      if (!preview) return;
+      pending += 1;
+      thumbUrl(preview.file, preview.path).then(function (url) {
+        if (!img.isConnected) {
+          settle();
+          return;
+        }
+        img.addEventListener("load", function () {
+          img.classList.remove("timeline-thumb-lazy");
+          settle();
+        }, { once: true });
+        img.addEventListener("error", settle, { once: true });
+        img.src = url;
+      }).catch(settle);
+    });
+    if (pending === 0 && thumb) thumb.classList.remove("is-loading");
   }
 
   function centerActiveThumb(animated) {
@@ -2406,6 +2619,7 @@
         if (!state.dragging) track.classList.remove("is-dragging");
       });
     }
+    syncTimelinePeriodFiltersFromViewport();
   }
 
   function renderControls() {
@@ -2488,6 +2702,18 @@
     if (els.heatmapToggle) {
       els.heatmapToggle.addEventListener("click", toggleHeatmapPanel);
     }
+    if (els.heatmapYearSelect) els.heatmapYearSelect.addEventListener("change", onHeatmapYearChange);
+    if (els.heatmapMonthSelect) els.heatmapMonthSelect.addEventListener("change", onHeatmapMonthChange);
+    if (els.heatmapPrevMonth) {
+      els.heatmapPrevMonth.addEventListener("click", function () {
+        shiftHeatmapMonth(-1);
+      });
+    }
+    if (els.heatmapNextMonth) {
+      els.heatmapNextMonth.addEventListener("click", function () {
+        shiftHeatmapMonth(1);
+      });
+    }
     var heatmapBody = els.heatmapPanel && els.heatmapPanel.querySelector(".heatmap-panel-body");
     if (heatmapBody) {
       heatmapBody.addEventListener("wheel", function (event) {
@@ -2505,6 +2731,9 @@
       }, { passive: false });
     }
     window.addEventListener("scroll", hideHeatmapTooltip, true);
+
+    if (els.timelineYearSelect) els.timelineYearSelect.addEventListener("change", onTimelineYearChange);
+    if (els.timelineMonthSelect) els.timelineMonthSelect.addEventListener("change", onTimelineMonthChange);
 
     els.pickDirectoryButton.addEventListener("click", pickDirectory);
     els.rescanButton.addEventListener("click", rescan);

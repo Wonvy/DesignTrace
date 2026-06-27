@@ -721,7 +721,7 @@ select {
   position: relative;
   display: flex;
   align-items: stretch;
-  width: var(--heatmap-panel-width, 236px);
+  width: var(--heatmap-panel-width, 196px);
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -782,64 +782,99 @@ select {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
-  padding: 10px 10px 10px 0;
+  padding: 8px 8px 8px 0;
 }
 
 .heatmap-panel.is-collapsed .heatmap-panel-body {
   display: none;
 }
 
-.heatmap-heading {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
-.heatmap-heading-row {
+.heatmap-nav {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.heatmap-period-bar {
+.heatmap-month-nav {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: baseline;
-  gap: 6px;
-  min-height: 28px;
+  grid-template-columns: 24px 1fr 24px;
+  align-items: center;
+  gap: 4px;
 }
 
-.heatmap-period-current {
-  font-size: 15px;
-  font-weight: 700;
+.heatmap-nav-select {
+  width: 100%;
+  height: 28px;
+  padding: 0 24px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background-color: rgba(251, 250, 247, 0.78);
   color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 10px) calc(50% - 2px), calc(100% - 6px) calc(50% - 2px);
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+
+@media (prefers-color-scheme: dark) {
+  .heatmap-nav-select {
+    background-color: rgba(27, 26, 24, 0.78);
+  }
+}
+
+.heatmap-nav-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.heatmap-nav-select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.heatmap-month-nav .heatmap-nav-select {
+  padding: 0 8px;
+  background-image: none;
   text-align: center;
-  white-space: nowrap;
 }
 
-.heatmap-period-side {
-  font-size: 11px;
-  font-weight: 600;
+.heatmap-nav-arrow {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
   color: var(--muted);
-  white-space: nowrap;
+  cursor: pointer;
 }
 
-.heatmap-period-side:first-child {
-  text-align: left;
+.heatmap-nav-arrow svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.heatmap-period-side:last-child {
-  text-align: right;
+.heatmap-nav-arrow:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
 }
 
-.heatmap-wheel-hint {
-  margin: 0 0 4px;
-  font-size: 10px;
-  color: var(--muted);
+.heatmap-nav-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .heatmap {
@@ -900,7 +935,7 @@ select {
 .heatmap-month-weekdays,
 .heatmap-month-grid {
   display: grid;
-  grid-template-columns: repeat(7, var(--heatmap-cell, 26px));
+  grid-template-columns: repeat(7, var(--heatmap-cell, 20px));
   gap: 2px;
 }
 
@@ -921,21 +956,21 @@ select {
 }
 
 .heatmap-cell-spacer {
-  width: var(--heatmap-cell, 26px);
-  height: var(--heatmap-cell, 26px);
+  width: var(--heatmap-cell, 20px);
+  height: var(--heatmap-cell, 20px);
 }
 
 .heatmap-cell {
   display: grid;
   place-items: center;
-  width: var(--heatmap-cell, 26px);
-  height: var(--heatmap-cell, 26px);
+  width: var(--heatmap-cell, 20px);
+  height: var(--heatmap-cell, 20px);
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 3px;
   background: color-mix(in srgb, var(--muted) 10%, transparent);
   color: var(--ink);
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
   cursor: default;
 }
@@ -1036,15 +1071,66 @@ select {
 .timeline-top {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr minmax(0, auto);
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, auto);
   align-items: start;
-  gap: 16px;
+  gap: 12px 16px;
   min-height: var(--project-info-height);
   padding-top: 4px;
 }
 
+.timeline-period-filter {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+}
+
+.timeline-period-select {
+  height: 32px;
+  padding: 0 28px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(251, 250, 247, 0.78);
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 14px) calc(50% - 2px), calc(100% - 9px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+@media (prefers-color-scheme: dark) {
+  .timeline-period-select {
+    background-color: rgba(27, 26, 24, 0.78);
+  }
+}
+
+.timeline-period-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.timeline-period-select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+#timelineYearSelect {
+  min-width: 92px;
+}
+
+#timelineMonthSelect {
+  min-width: 76px;
+}
+
 .project-info {
-  grid-column: 1 / -1;
+  grid-column: 2;
   grid-row: 1;
   display: flex;
   flex-direction: column;
@@ -1052,7 +1138,7 @@ select {
   justify-content: center;
   gap: 6px;
   min-height: var(--project-info-height);
-  padding: 0 min(420px, 42vw) 2px;
+  padding: 0 12px 2px;
   text-align: center;
   pointer-events: none;
   box-sizing: border-box;
@@ -1061,7 +1147,7 @@ select {
 .timeline-header {
   position: relative;
   z-index: 2;
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   justify-self: end;
   align-self: start;
@@ -1414,89 +1500,13 @@ select {
 
 .tick {
   position: absolute;
-  top: 12px;
-  width: 1px;
-  height: 16px;
-  background: var(--line-strong);
-}
-
-.tick.major {
-  top: 8px;
-  height: 24px;
-}
-
-.tick-label {
-  position: absolute;
-  top: 0;
+  top: 27px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--line-strong) 80%, var(--muted));
   transform: translateX(-50%);
-  color: var(--muted);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.tick-label-month,
-.tick-label-day {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 1px;
-}
-
-.tick-month-num {
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--ink);
-  line-height: 1;
-  letter-spacing: 0;
-}
-
-.tick-month-suffix {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.tick-day-num {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--ink);
-  line-height: 1;
-}
-
-.tick-year-num {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--ink);
-  line-height: 1;
-}
-
-.tick-year-suffix {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.tick-label-year-month {
-  gap: 4px;
-}
-
-.tick-label-year-month .tick-year-num {
-  font-size: 16px;
-}
-
-.tick-label-year-month .tick-year-suffix {
-  margin-right: 2px;
-}
-
-.tick-label-month .tick-month-num {
-  font-size: 24px;
-}
-
-.tick-label.tick-label-start {
-  transform: translateX(0);
-}
-
-.tick-label.tick-label-end {
-  transform: translateX(-100%);
+  pointer-events: none;
 }
 
 .thumb {
@@ -1578,6 +1588,36 @@ select {
   opacity: 0;
 }
 
+.thumb-grid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+}
+
+.thumb-grid--2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+.thumb-grid--3,
+.thumb-grid--4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.thumb-grid--3 .thumb-grid-cell:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.thumb-grid-cell {
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+}
+
 .thumb-spinner {
   position: absolute;
   top: 50%;
@@ -1603,7 +1643,7 @@ select {
   }
 }
 
-.thumb img,
+.thumb > img,
 .thumb-placeholder {
   width: 100%;
   height: 100%;
@@ -1613,6 +1653,14 @@ select {
   color: var(--muted);
   font-size: 12px;
   text-align: center;
+}
+
+.thumb-grid-cell img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
 }
 
 .thumb-placeholder {
