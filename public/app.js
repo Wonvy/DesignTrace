@@ -29,6 +29,7 @@
     thumbUrlPending: new Map(),
     imageDimsCache: new Map(),
     imageDimsPending: new Map(),
+    thumbGridHoverCell: null,
     statusMessage: "",
     previewPath: "",
     previewProjectId: "",
@@ -95,6 +96,7 @@
     heatmapToggle: document.getElementById("heatmapToggle"),
     heatmap: document.getElementById("heatmap"),
     heatmapTooltip: document.getElementById("heatmapTooltip"),
+    thumbGridTooltip: document.getElementById("thumbGridTooltip"),
     autoplayButton: document.getElementById("autoplayButton"),
     slideshowFullscreenButton: document.getElementById("slideshowFullscreenButton"),
     scopeFilterSelect: document.getElementById("scopeFilterSelect"),
@@ -269,6 +271,11 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
+  }
+
+  function formatDisplayPath(path) {
+    if (!path) return "";
+    return String(path).replace(/\//g, "\\");
   }
 
   function extension(fileName) {
@@ -480,6 +487,77 @@
     return promise;
   }
 
+  function formatImagePixelLabel(dims) {
+    if (!dims || !dims.w || !dims.h) return "—";
+    return dims.w + " × " + dims.h + " px";
+  }
+
+  function hideThumbGridTooltip() {
+    state.thumbGridHoverCell = null;
+    if (!els.thumbGridTooltip) return;
+    els.thumbGridTooltip.hidden = true;
+    els.thumbGridTooltip.innerHTML = "";
+  }
+
+  function positionThumbGridTooltip(cell) {
+    if (!els.thumbGridTooltip || els.thumbGridTooltip.hidden || !cell) return;
+    var rect = cell.getBoundingClientRect();
+    var tooltipRect = els.thumbGridTooltip.getBoundingClientRect();
+    var left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    var top = rect.top - tooltipRect.height - 8;
+    if (top < 8) top = rect.bottom + 8;
+    left = Math.max(8, Math.min(window.innerWidth - tooltipRect.width - 8, left));
+    top = Math.max(8, Math.min(window.innerHeight - tooltipRect.height - 8, top));
+    els.thumbGridTooltip.style.left = left + "px";
+    els.thumbGridTooltip.style.top = top + "px";
+  }
+
+  function renderThumbGridTooltip(file, dims) {
+    var dimsText = dims ? formatImagePixelLabel(dims) : "读取中…";
+    return [
+      '<div class="thumb-grid-tooltip-name">' + escapeHtml(file.name) + "</div>",
+      '<div class="thumb-grid-tooltip-dims">' + escapeHtml(dimsText) + "</div>"
+    ].join("");
+  }
+
+  function showThumbGridTooltip(cell, file) {
+    if (!els.thumbGridTooltip || !cell || !file) return;
+    state.thumbGridHoverCell = cell;
+    var cacheKey = file.path;
+    var dims = state.imageDimsCache.get(cacheKey) || null;
+    els.thumbGridTooltip.innerHTML = renderThumbGridTooltip(file, dims);
+    els.thumbGridTooltip.hidden = false;
+    requestAnimationFrame(function () {
+      positionThumbGridTooltip(cell);
+    });
+    if (dims || !file.file) return;
+    ensureImageDimensions(file.file, cacheKey).then(function (loaded) {
+      if (state.thumbGridHoverCell !== cell || !els.thumbGridTooltip || els.thumbGridTooltip.hidden) return;
+      els.thumbGridTooltip.innerHTML = renderThumbGridTooltip(file, loaded);
+      positionThumbGridTooltip(cell);
+    });
+  }
+
+  function bindThumbGridTooltipEvents(card, project) {
+    var thumbGrid = card.querySelector(".thumb-grid");
+    if (!thumbGrid) return;
+    var images = timelineDisplayImages(project);
+    thumbGrid.addEventListener("mouseover", function (event) {
+      var cell = event.target.closest(".thumb-grid-cell");
+      if (!cell || !thumbGrid.contains(cell)) return;
+      var cells = thumbGrid.querySelectorAll(".thumb-grid-cell");
+      var index = Array.prototype.indexOf.call(cells, cell);
+      var file = images[index];
+      if (!file) return;
+      showThumbGridTooltip(cell, file);
+    });
+    thumbGrid.addEventListener("mouseleave", function (event) {
+      var related = event.relatedTarget;
+      if (related && thumbGrid.contains(related)) return;
+      hideThumbGridTooltip();
+    });
+  }
+
   function scheduleImageDimensions(file, cacheKey, onReady) {
     var run = function () {
       ensureImageDimensions(file, cacheKey).then(function (dims) {
@@ -571,7 +649,7 @@
 
   function updateFolderTooltip() {
     var text = state.rootName
-      ? "当前文件夹：" + state.rootName + "\n项目相对路径：" + state.rootName + "/...\n浏览器出于安全考虑不会暴露完整磁盘路径。"
+      ? "当前文件夹：" + state.rootName + "\n项目相对路径：" + formatDisplayPath(state.rootName + "/...") + "\n浏览器出于安全考虑不会暴露完整磁盘路径。"
       : "尚未选择文件夹。\n点击后浏览器会请求查看本地文件夹权限。";
     els.pickDirectoryButton.dataset.tooltip = text;
     els.pickDirectoryButton.title = text;
@@ -652,7 +730,7 @@
     var path = rootName + "/" + relativePath;
     if (buckets.has(path)) return;
 
-    setScanProgress("正在分析 " + relativePath + "...");
+    setScanProgress("正在分析 " + formatDisplayPath(relativePath) + "...");
     var bucket = createBucket(directoryHandle.name, path, rootName, relativePath);
     bucket.directoryHandle = directoryHandle;
     bucket.folderDate = folderDate.iso;
@@ -840,7 +918,7 @@
     return {
       id: hashText(bucket.path),
       name: bucket.name,
-      displayName: bucket.relativePath.split("/").join(" / "),
+      displayName: formatDisplayPath(bucket.relativePath),
       path: bucket.path,
       parentPath: bucket.parentPath,
       relativePath: bucket.relativePath,
@@ -1139,7 +1217,7 @@
     state.filtered = state.projects
       .filter(function (project) {
         if (query) {
-          var matched = [project.name, project.displayName, project.path, project.relativePath, project.projectType].some(function (value) {
+          var matched = [project.name, project.displayName, project.path, project.relativePath, formatDisplayPath(project.path), formatDisplayPath(project.relativePath), project.projectType].some(function (value) {
             return value.toLowerCase().includes(query);
           });
           if (!matched) return false;
@@ -1313,7 +1391,7 @@
 
     if (!preview) {
       els.heroArtwork.classList.remove("is-loading");
-      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, displayProject.path);
+      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, formatDisplayPath(displayProject.path));
       heroArtworkLoadingGen = null;
       resolveHeroImageLoadWaiters();
       return;
@@ -1321,7 +1399,7 @@
 
     if (!IMAGE_EXTENSIONS.has(preview.extension)) {
       els.heroArtwork.classList.remove("is-loading");
-      els.heroArtwork.innerHTML = emptyArtwork(preview.name, preview.extension || preview.path);
+      els.heroArtwork.innerHTML = emptyArtwork(preview.name, preview.extension || formatDisplayPath(preview.path));
       heroArtworkLoadingGen = null;
       resolveHeroImageLoadWaiters();
       return;
@@ -1374,7 +1452,7 @@
       if (gen !== heroRenderGeneration) return;
       heroArtworkLoadingGen = null;
       els.heroArtwork.classList.remove("is-loading");
-      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, displayProject.path);
+      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, formatDisplayPath(displayProject.path));
       resolveHeroImageLoadWaiters();
     });
 
@@ -1695,7 +1773,7 @@
       + (currentFile && file.path === currentFile.path ? " active" : "")
       + (isImage ? " is-image" : isDesign ? " is-design" : " is-file")
       + (collapsed ? " is-group-collapsed" : "");
-    button.title = file.relativePath;
+    button.title = formatDisplayPath(file.relativePath);
     button.dataset.path = file.path;
     button.dataset.groupKey = groupKey;
 
@@ -1804,7 +1882,7 @@
     if (preview && IMAGE_EXTENSIONS.has(preview.extension)) {
       return '<img class="art-image art-image-lazy" alt="' + escapeHtml(preview.name) + '">';
     }
-    return emptyArtwork(project.displayName || project.name, project.path);
+    return emptyArtwork(project.displayName || project.name, formatDisplayPath(project.path));
   }
 
   function emptyArtwork(title, subtitle) {
@@ -1964,6 +2042,7 @@
         handleProjectFolderAction(project, folderAction);
       });
     }
+    bindThumbGridTooltipEvents(card, project);
     card.addEventListener("mouseenter", function () {
       setTimelineHover(index);
     });
@@ -2576,7 +2655,7 @@
       els.statusPath.textContent = state.statusMessage;
       if (els.statusbar) els.statusbar.classList.add("is-status-notice");
     } else {
-      els.statusPath.textContent = project.path;
+      els.statusPath.textContent = formatDisplayPath(project.path);
       if (els.statusbar) els.statusbar.classList.remove("is-status-notice");
     }
     if (preview) {
@@ -2616,7 +2695,7 @@
     var copyProject = statusPathCanCopy();
     els.statusPath.classList.toggle("is-copyable", !!copyProject);
     if (copyProject) {
-      els.statusPath.title = "点击复制路径";
+      els.statusPath.title = formatDisplayPath(copyProject.path) + "\n点击复制路径";
       els.statusPath.setAttribute("role", "button");
     } else {
       els.statusPath.removeAttribute("title");
@@ -2633,6 +2712,7 @@
 
   function renderTimeline() {
     state.timelineRenderGeneration += 1;
+    hideThumbGridTooltip();
     els.timeline.innerHTML = "";
     if (!state.filtered.length) {
       var emptyMessage = state.projects.length
@@ -2795,14 +2875,9 @@
     }
   }
 
-  function formatPathForClipboard(path) {
-    if (!path) return "";
-    return String(path).replace(/\//g, "\\");
-  }
-
   async function copyProjectPath(project) {
     if (!project || !project.path) return false;
-    var clipboardPath = formatPathForClipboard(project.path);
+    var clipboardPath = formatDisplayPath(project.path);
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(clipboardPath);
@@ -2898,6 +2973,7 @@
       if (img.getAttribute("src")) return;
       var preview = previews[index];
       if (!preview) return;
+      if (preview.file) scheduleImageDimensions(preview.file, preview.path);
       pending += 1;
       thumbUrl(preview.file, preview.path).then(function (url) {
         if (!img.isConnected) {
@@ -3138,7 +3214,10 @@
         }
       }, { passive: false });
     }
-    window.addEventListener("scroll", hideHeatmapTooltip, true);
+    window.addEventListener("scroll", function () {
+      hideHeatmapTooltip();
+      hideThumbGridTooltip();
+    }, true);
 
     if (els.timelineYearSelect) els.timelineYearSelect.addEventListener("change", onTimelineYearChange);
     if (els.timelineMonthSelect) els.timelineMonthSelect.addEventListener("change", onTimelineMonthChange);
@@ -3260,6 +3339,7 @@
       if (!state.dragMoved && Math.abs(event.clientX - state.dragStartX) > 5) {
         state.dragMoved = true;
         state.dragging = true;
+        hideThumbGridTooltip();
         els.timeline.classList.add("dragging");
       }
       if (!state.dragging) return;
@@ -3289,6 +3369,7 @@
       els.timeline.classList.remove("dragging");
     });
     els.timeline.addEventListener("wheel", function (event) {
+      hideThumbGridTooltip();
       event.preventDefault();
       if (event.ctrlKey || event.metaKey) {
         var rect = els.timeline.getBoundingClientRect();
@@ -3330,6 +3411,7 @@
       scheduleTimelineLayout(true);
       centerActiveThumb(true);
       hideHeatmapTooltip();
+      hideThumbGridTooltip();
     });
   }
 
