@@ -36,20 +36,40 @@
       </header>
 
       <main class="showcase" aria-live="polite">
-        <button id="prevButton" class="nav-arrow nav-arrow-left" type="button" aria-label="上一件作品">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M14.5 7.5 9 12l5.5 4.5" />
-          </svg>
-        </button>
-        <button id="nextButton" class="nav-arrow nav-arrow-right" type="button" aria-label="下一件作品">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9.5 7.5 15 12l-5.5 4.5" />
-          </svg>
-        </button>
-
-        <div id="slideshowStage" class="slideshow-stage">
-          <section id="heroArtwork" class="hero-artwork"></section>
-          <aside id="heroThumbs" class="hero-thumbs" aria-label="项目第一层文件列表" hidden></aside>
+        <div id="showcaseLayout" class="showcase-layout">
+          <div class="slideshow-column">
+            <button id="prevButton" class="nav-arrow nav-arrow-left" type="button" aria-label="上一件作品">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 7.5 9 12l5.5 4.5" />
+              </svg>
+            </button>
+            <div id="slideshowStage" class="slideshow-stage">
+              <section id="heroArtwork" class="hero-artwork"></section>
+            </div>
+            <button id="nextButton" class="nav-arrow nav-arrow-right" type="button" aria-label="下一件作品">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9.5 7.5 15 12l-5.5 4.5" />
+              </svg>
+            </button>
+          </div>
+          <aside id="heroFilesPanel" class="hero-files-panel" hidden>
+            <div class="hero-files-toolbar">
+              <span class="hero-files-toolbar-label">项目文件</span>
+              <div class="hero-files-view-toggle" role="group" aria-label="文件视图">
+                <button id="heroFilesViewList" type="button" class="hero-view-btn is-active" aria-label="列表视图" aria-pressed="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 7h14M5 12h14M5 17h14" />
+                  </svg>
+                </button>
+                <button id="heroFilesViewGrid" type="button" class="hero-view-btn" aria-label="网格视图" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 5h6.5v6.5H5zM12.5 5H19v6.5h-6.5zM5 12.5h6.5V19H5zM12.5 12.5H19V19h-6.5z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div id="heroThumbs" class="hero-thumbs is-list-view" aria-label="项目第一层文件列表"></div>
+          </aside>
         </div>
 
         <div id="scanOverlay" class="scan-overlay" aria-live="polite">
@@ -73,10 +93,10 @@
               <option value="">月份</option>
             </select>
           </div>
-          <section class="project-info" aria-live="polite">
-            <h1 id="heroTitle" class="project-title">选择文件夹开始</h1>
+          <section id="projectInfo" class="project-info" aria-live="polite">
+            <h1 id="heroTitle" class="project-title"></h1>
             <p class="project-detail">
-              <span id="heroKicker" class="project-kicker">DesignTrace</span><span id="heroMeta" class="project-meta">本地读取，未上传。</span>
+              <span id="heroKicker" class="project-kicker"></span><span id="heroMeta" class="project-meta"></span>
             </p>
           </section>
           <div class="timeline-header">

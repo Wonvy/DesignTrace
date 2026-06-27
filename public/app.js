@@ -42,7 +42,8 @@
     heatmapViewYear: null,
     heatmapViewMonth: null,
     timelinePeriodSyncLock: false,
-    heatmapNavSyncLock: false
+    heatmapNavSyncLock: false,
+    heroFilesView: localStorage.getItem("designtrace:heroFilesView") || "list"
   };
 
   var timelineLayoutFrame = null;
@@ -71,9 +72,14 @@
     themeButton: document.getElementById("themeButton"),
     prevButton: document.getElementById("prevButton"),
     nextButton: document.getElementById("nextButton"),
+    showcaseLayout: document.getElementById("showcaseLayout"),
     slideshowStage: document.getElementById("slideshowStage"),
+    heroFilesPanel: document.getElementById("heroFilesPanel"),
+    heroFilesViewList: document.getElementById("heroFilesViewList"),
+    heroFilesViewGrid: document.getElementById("heroFilesViewGrid"),
     heroArtwork: document.getElementById("heroArtwork"),
     heroThumbs: document.getElementById("heroThumbs"),
+    projectInfo: document.getElementById("projectInfo"),
     heroKicker: document.getElementById("heroKicker"),
     heroTitle: document.getElementById("heroTitle"),
     heroMeta: document.getElementById("heroMeta"),
@@ -115,6 +121,108 @@
   var DESIGN_SOURCE_EXTENSIONS = new Set([
     ".cdr", ".psd", ".ai", ".eps", ".pptx", ".ppt", ".indd", ".xd", ".sketch", ".afdesign"
   ]);
+  var DESIGN_ICON_ORDER = [".psd", ".ai", ".cdr", ".ppt", ".eps", ".indd", ".xd", ".sketch", ".afdesign"];
+
+  function normalizeDesignExtension(ext) {
+    if (!ext) return "";
+    var value = ext.toLowerCase();
+    if (value === ".pptx") return ".ppt";
+    return value;
+  }
+
+  function isDesignSourceExtension(ext) {
+    return DESIGN_SOURCE_EXTENSIONS.has(ext) || ext === ".pptx";
+  }
+
+  function designFileIconSvg(ext) {
+    var key = normalizeDesignExtension(ext);
+    if (key === ".psd") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#001e36"/><text x="16" y="21" text-anchor="middle" fill="#31a8ff" font-size="12" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Ps</text></svg>';
+    }
+    if (key === ".ai") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#330000"/><text x="16" y="21" text-anchor="middle" fill="#ff9a00" font-size="12" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Ai</text></svg>';
+    }
+    if (key === ".cdr") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#008043"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="Segoe UI, Arial, sans-serif">CDR</text></svg>';
+    }
+    if (key === ".ppt") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#d24726"/><text x="16" y="21" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="Segoe UI, Arial, sans-serif">P</text></svg>';
+    }
+    if (key === ".eps") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#2f2f2f"/><text x="16" y="20" text-anchor="middle" fill="#f5f5f5" font-size="9" font-weight="700" font-family="Segoe UI, Arial, sans-serif">EPS</text></svg>';
+    }
+    if (key === ".indd") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#49021f"/><text x="16" y="20" text-anchor="middle" fill="#ff3366" font-size="8" font-weight="700" font-family="Segoe UI, Arial, sans-serif">INDD</text></svg>';
+    }
+    if (key === ".xd") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#470137"/><text x="16" y="21" text-anchor="middle" fill="#ff61f6" font-size="12" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Xd</text></svg>';
+    }
+    if (key === ".sketch") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#fdb300"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="Segoe UI, Arial, sans-serif">SK</text></svg>';
+    }
+    if (key === ".afdesign") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#1b72e8"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="Segoe UI, Arial, sans-serif">AF</text></svg>';
+    }
+    var label = key.replace(".", "").toUpperCase().slice(0, 4);
+    return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#4a4a4a"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="Segoe UI, Arial, sans-serif">' + escapeHtml(label) + "</text></svg>";
+  }
+
+  function designFileIconHtml(ext, extraClass) {
+    var key = normalizeDesignExtension(ext);
+    var label = key.replace(".", "").toUpperCase();
+    var className = "design-file-icon design-file-icon--" + key.slice(1);
+    if (extraClass) className += " " + extraClass;
+    return '<span class="' + className + '" title="' + escapeHtml(label) + '">' + designFileIconSvg(ext) + "</span>";
+  }
+
+  function projectDesignExtensions(project) {
+    if (!project || !project.extensions) return [];
+    var available = new Set();
+    project.extensions.forEach(function (ext) {
+      if (isDesignSourceExtension(ext)) available.add(normalizeDesignExtension(ext));
+    });
+    var ordered = DESIGN_ICON_ORDER.filter(function (ext) {
+      return available.has(ext);
+    });
+    available.forEach(function (ext) {
+      if (ordered.indexOf(ext) < 0) ordered.push(ext);
+    });
+    return ordered;
+  }
+
+  function timelineDesignIconsMarkup(project) {
+    var types = projectDesignExtensions(project);
+    if (!types.length) return "";
+    return '<div class="thumb-design-icons">' + types.map(function (ext) {
+      return designFileIconHtml(ext, "design-file-icon--compact");
+    }).join("") + "</div>";
+  }
+
+  function setHeroFilesView(view) {
+    state.heroFilesView = view === "grid" ? "grid" : "list";
+    localStorage.setItem("designtrace:heroFilesView", state.heroFilesView);
+    if (els.heroThumbs) {
+      els.heroThumbs.classList.toggle("is-list-view", state.heroFilesView === "list");
+      els.heroThumbs.classList.toggle("is-grid-view", state.heroFilesView === "grid");
+    }
+    if (els.heroFilesViewList) {
+      els.heroFilesViewList.classList.toggle("is-active", state.heroFilesView === "list");
+      els.heroFilesViewList.setAttribute("aria-pressed", state.heroFilesView === "list" ? "true" : "false");
+    }
+    if (els.heroFilesViewGrid) {
+      els.heroFilesViewGrid.classList.toggle("is-active", state.heroFilesView === "grid");
+      els.heroFilesViewGrid.setAttribute("aria-pressed", state.heroFilesView === "grid" ? "true" : "false");
+    }
+  }
+
+  function updateShowcaseLayout(hasSidePanel) {
+    if (els.showcaseLayout) {
+      els.showcaseLayout.classList.toggle("has-files-panel", !!hasSidePanel);
+    }
+    if (els.heroFilesPanel) {
+      els.heroFilesPanel.hidden = !hasSidePanel;
+    }
+  }
   var TYPE_RULES = [
     ["package.json", "Web / Node", 40],
     ["vite.config.js", "Vite App", 20],
@@ -135,7 +243,7 @@
     minStep: 8,
     minimalWidth: 32,
     padding: 168,
-    metaHeight: 52,
+    metaHeight: 68,
     minThumbHeight: 24,
     minThumbHeightMinimal: 8,
     scaleMin: 0.1,
@@ -1156,11 +1264,12 @@
       els.heroArtwork.innerHTML = "";
       els.heroArtwork.classList.remove("is-loading");
       els.heroThumbs.innerHTML = "";
-      els.heroThumbs.hidden = true;
-      els.slideshowStage.classList.remove("has-sidepanel", "is-preview");
-      els.heroKicker.textContent = "DesignTrace";
-      els.heroTitle.textContent = "选择文件夹开始";
-      els.heroMeta.textContent = "本地读取，未上传。";
+      updateShowcaseLayout(false);
+      els.slideshowStage.classList.remove("is-preview");
+      if (els.projectInfo) els.projectInfo.classList.remove("is-ready");
+      els.heroKicker.textContent = "";
+      els.heroTitle.textContent = "";
+      els.heroMeta.textContent = "";
       renderStatusBar();
       return;
     }
@@ -1175,8 +1284,9 @@
 
     loadHeroArtwork(displayProject, currentFile, hoverPreview);
     renderHeroSideFiles(selectedProject, sideFiles, currentFile, hoverPreview);
-    els.slideshowStage.classList.toggle("has-sidepanel", !hoverPreview && !!selectedProject);
+    updateShowcaseLayout(!hoverPreview && !!selectedProject);
     els.slideshowStage.classList.toggle("is-preview", hoverPreview);
+    if (els.projectInfo) els.projectInfo.classList.add("is-ready");
     els.heroKicker.textContent = "";
     els.heroTitle.textContent = displayProject.name;
     els.heroMeta.textContent = displayProject.fileCount + " 个文件 · "
@@ -1485,17 +1595,15 @@
 
   function renderHeroSideFiles(project, files, currentFile, hoverPreview) {
     els.heroThumbs.innerHTML = "";
+    setHeroFilesView(state.heroFilesView);
     if (hoverPreview) {
-      els.heroThumbs.hidden = true;
       return;
     }
-    els.heroThumbs.hidden = false;
     if (!files.length) {
       els.heroThumbs.innerHTML = '<div class="hero-file-empty">暂无第一层文件</div>';
       return;
     }
     var gen = heroRenderGeneration;
-    els.heroThumbs.hidden = false;
 
     var lastGroup = null;
     files.forEach(function (file) {
@@ -1507,15 +1615,17 @@
         els.heroThumbs.appendChild(heading);
       }
 
+      var isImage = IMAGE_EXTENSIONS.has(file.extension);
+      var isDesign = isDesignSourceExtension(file.extension);
       var button = document.createElement("button");
       button.type = "button";
       button.className = "hero-file-item"
         + (currentFile && file.path === currentFile.path ? " active" : "")
-        + (IMAGE_EXTENSIONS.has(file.extension) ? " is-image" : " is-file");
+        + (isImage ? " is-image" : isDesign ? " is-design" : " is-file");
       button.title = file.relativePath;
       button.dataset.path = file.path;
 
-      if (IMAGE_EXTENSIONS.has(file.extension)) {
+      if (isImage) {
         button.innerHTML = [
           '<span class="hero-thumb-spinner" aria-hidden="true"></span>',
           '<img class="hero-thumb-lazy" alt="' + escapeHtml(file.name) + '">',
@@ -1532,6 +1642,11 @@
         }).catch(function () {
           button.classList.remove("is-loading");
         });
+      } else if (isDesign) {
+        button.innerHTML = [
+          designFileIconHtml(file.extension),
+          '<span class="hero-file-name">' + escapeHtml(file.name) + "</span>"
+        ].join("");
       } else {
         button.innerHTML = [
           '<span class="hero-file-badge">' + escapeHtml((file.extension || "file").replace(".", "").toUpperCase()) + "</span>",
@@ -1776,18 +1891,139 @@
     track.appendChild(tick);
   }
 
+  function appendTimelineAxisLabel(track, x, html, classNames, align) {
+    var label = document.createElement("div");
+    label.className = "tick-label " + classNames.join(" ");
+    label.style.left = x + "px";
+    if (align === "start") label.classList.add("tick-label-start");
+    else if (align === "end") label.classList.add("tick-label-end");
+    label.innerHTML = html;
+    track.appendChild(label);
+  }
+
+  function timelineAxisMonthHtml(month) {
+    return '<span class="tick-month-num">' + month + '</span><span class="tick-month-suffix">月</span>';
+  }
+
+  function timelineAxisYearHtml(year) {
+    return '<span class="tick-year-num">' + year + '</span><span class="tick-year-suffix">年</span>';
+  }
+
+  function timelineLabelMinGap(metrics, kind) {
+    var step = metrics.step;
+    if (kind === "year") return Math.max(56, step * 2.35);
+    if (kind === "month") return Math.max(32, step * 1.3);
+    return Math.max(14, step * 0.68);
+  }
+
+  function canPlaceTimelineLabel(placements, x, kind, metrics) {
+    var minGap = timelineLabelMinGap(metrics, kind);
+    for (var i = 0; i < placements.length; i += 1) {
+      if (Math.abs(x - placements[i].x) < Math.max(minGap, timelineLabelMinGap(metrics, placements[i].kind))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function placeTimelineLabel(track, placements, x, kind, html, classNames, align, metrics) {
+    if (kind === "day" && metrics.step < 20) return;
+    if (kind === "month" && metrics.step < 9) return;
+    var spacingKind = classNames.indexOf("tick-label-year-month") >= 0 ? "year" : kind;
+    if (kind === "year" && classNames.indexOf("tick-label-year") >= 0 && metrics.step < 48) return;
+    if (!canPlaceTimelineLabel(placements, x, spacingKind, metrics)) return;
+    appendTimelineAxisLabel(track, x, html, classNames, align);
+    placements.push({ x: x, kind: spacingKind });
+  }
+
   function renderTicks(track, metrics) {
-    track.querySelectorAll(".tick").forEach(function (node) {
+    track.querySelectorAll(".tick, .tick-label").forEach(function (node) {
       node.remove();
     });
     var count = state.filtered.length;
     if (!count) return;
 
+    var placements = [];
+
     for (var index = 0; index < count; index += 1) {
       var project = state.filtered[index];
       var date = projectTimelineDate(project);
       if (!Number.isFinite(date.getTime())) continue;
-      appendTimelineAxisTick(track, cardCenter(index, metrics));
+
+      var year = date.getFullYear();
+      var month = date.getMonth() + 1;
+      var day = date.getDate();
+      var x = cardCenter(index, metrics);
+      var align = index === 0 ? "start" : (index === count - 1 ? "end" : "center");
+
+      appendTimelineAxisTick(track, x);
+
+      var prev = index > 0 ? projectTimelineDate(state.filtered[index - 1]) : null;
+      var prevValid = prev && Number.isFinite(prev.getTime());
+      var prevYear = prevValid ? prev.getFullYear() : null;
+      var prevMonth = prevValid ? prev.getMonth() + 1 : null;
+
+      if (index > 0 && prevValid && year !== prevYear) {
+        var xBetween = (cardCenter(index - 1, metrics) + x) / 2;
+        placeTimelineLabel(
+          track,
+          placements,
+          xBetween,
+          "year",
+          timelineAxisYearHtml(year),
+          ["tick-label-year"],
+          "center",
+          metrics
+        );
+      }
+
+      if (index === 0) {
+        placeTimelineLabel(
+          track,
+          placements,
+          x,
+          "year",
+          timelineAxisYearHtml(year) + timelineAxisMonthHtml(month),
+          ["tick-label-month", "tick-label-year-month"],
+          align,
+          metrics
+        );
+      } else if (!prevValid || year !== prevYear || month !== prevMonth) {
+        if (year !== prevYear) {
+          placeTimelineLabel(
+            track,
+            placements,
+            x,
+            "year",
+            timelineAxisYearHtml(year) + timelineAxisMonthHtml(month),
+            ["tick-label-month", "tick-label-year-month"],
+            align,
+            metrics
+          );
+        } else {
+          placeTimelineLabel(
+            track,
+            placements,
+            x,
+            "month",
+            timelineAxisMonthHtml(month),
+            ["tick-label-month"],
+            align,
+            metrics
+          );
+        }
+      } else {
+        placeTimelineLabel(
+          track,
+          placements,
+          x,
+          "day",
+          '<span class="tick-day-num">' + day + "</span>",
+          ["tick-label-day"],
+          align,
+          metrics
+        );
+      }
     }
   }
 
@@ -2556,6 +2792,7 @@
       "</div>",
       '<div class="thumb-meta">',
       '<div class="thumb-title">' + escapeHtml(project.name) + "</div>",
+      timelineDesignIconsMarkup(project),
       "</div>"
     ].join("");
   }
@@ -2772,6 +3009,16 @@
     els.nextButton.addEventListener("click", function () {
       selectIndex(state.selectedIndex + 1);
     });
+    if (els.heroFilesViewList) {
+      els.heroFilesViewList.addEventListener("click", function () {
+        setHeroFilesView("list");
+      });
+    }
+    if (els.heroFilesViewGrid) {
+      els.heroFilesViewGrid.addEventListener("click", function () {
+        setHeroFilesView("grid");
+      });
+    }
     if (els.statusSlider) {
       els.statusSlider.addEventListener("input", function () {
         if (!state.filtered.length || els.statusSlider.disabled) return;
@@ -2781,7 +3028,7 @@
     var heroWheelLock = false;
     document.querySelector(".showcase").addEventListener("wheel", function (event) {
       if (!state.filtered.length || heroWheelLock) return;
-      if (event.target.closest && event.target.closest("#heroThumbs")) return;
+      if (event.target.closest && (event.target.closest("#heroThumbs") || event.target.closest("#heroFilesPanel"))) return;
       event.preventDefault();
       heroWheelLock = true;
       selectIndex(state.selectedIndex + (event.deltaY > 0 || event.deltaX > 0 ? 1 : -1));
@@ -2924,6 +3171,7 @@
 
   applyTheme(localStorage.getItem("designtrace:theme"));
   state.heatmapCollapsed = localStorage.getItem("designtrace:heatmapCollapsed") === "1";
+  setHeroFilesView(state.heroFilesView);
   updateFolderTooltip();
   updateExtensionFilterOptions();
   bindEvents();
