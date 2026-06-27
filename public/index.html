@@ -17,13 +17,6 @@
         <input id="searchInput" class="search" type="search" placeholder="搜索作品、路径、类型" />
 
         <div class="toolbar">
-          <select id="sortSelect" aria-label="排序">
-            <option value="lastActiveAt">最近活跃</option>
-            <option value="createdAt">起始时间</option>
-            <option value="modifiedAt">修改时间</option>
-            <option value="name">名称</option>
-            <option value="sizeBytes">大小</option>
-          </select>
           <button id="pickDirectoryButton" type="button">选择文件夹</button>
           <button id="rescanButton" type="button">重新扫描</button>
           <button id="themeButton" class="icon-button" type="button" aria-label="切换主题">
@@ -53,22 +46,7 @@
             </button>
           </div>
           <aside id="heroFilesPanel" class="hero-files-panel" hidden>
-            <div class="hero-files-toolbar">
-              <span class="hero-files-toolbar-label">项目文件</span>
-              <div class="hero-files-view-toggle" role="group" aria-label="文件视图">
-                <button id="heroFilesViewList" type="button" class="hero-view-btn is-active" aria-label="列表视图" aria-pressed="true">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 7h14M5 12h14M5 17h14" />
-                  </svg>
-                </button>
-                <button id="heroFilesViewGrid" type="button" class="hero-view-btn" aria-label="网格视图" aria-pressed="false">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 5h6.5v6.5H5zM12.5 5H19v6.5h-6.5zM5 12.5h6.5V19H5zM12.5 12.5H19V19h-6.5z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div id="heroThumbs" class="hero-thumbs is-list-view" aria-label="项目第一层文件列表"></div>
+            <div id="heroThumbs" class="hero-thumbs" aria-label="项目第一层文件列表"></div>
           </aside>
         </div>
 
@@ -101,7 +79,7 @@
           </section>
           <div class="timeline-header">
             <div class="timeline-tools">
-              <select id="scopeFilterSelect" class="scope-filter" aria-label="范围筛选">
+              <select id="scopeFilterSelect" class="timeline-period-select" aria-label="范围筛选">
                 <option value="all">全部</option>
                 <option value="sameParent">同父文件夹</option>
                 <option value="sameRoot">同根目录</option>
@@ -111,7 +89,7 @@
               <div id="extFilter" class="ext-filter">
                 <button
                   id="extFilterTrigger"
-                  class="ext-filter-trigger scope-filter"
+                  class="ext-filter-trigger timeline-period-select"
                   type="button"
                   aria-label="后缀筛选，可多选"
                   aria-haspopup="listbox"
@@ -124,18 +102,17 @@
                   <div id="extFilterMenu" class="ext-filter-menu"></div>
                 </div>
               </div>
-              <select id="sizeFilterSelect" class="scope-filter" aria-label="图片大小筛选">
+              <select id="sizeFilterSelect" class="timeline-period-select" aria-label="图片大小筛选">
                 <option value="all">全部大小</option>
                 <option value="hideSmall">隐藏小图</option>
                 <option value="medium">≥512KB</option>
                 <option value="large">≥2MB</option>
               </select>
-              <button id="autoplayButton" class="play-button" type="button" aria-label="播放时间轴">
+              <button id="autoplayButton" class="play-button timeline-autoplay-button" type="button" aria-label="播放时间轴">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path class="play-icon" d="M9 7.5v9l7-4.5-7-4.5Z" />
-                  <path class="pause-icon" d="M8 7h2.8v10H8zM13.2 7H16v10h-2.8z" />
+                  <path class="play-icon" d="M10 8.2v7.6l6.4-3.8L10 8.2Z" />
+                  <path class="pause-icon" d="M8 7h3.2v10H8V7zm4.8 0H16v10h-3.2V7Z" />
                 </svg>
-                <span>播放</span>
               </button>
             </div>
           </div>
