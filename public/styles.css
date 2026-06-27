@@ -907,6 +907,7 @@ select {
   min-height: 0;
   overflow: hidden;
   cursor: grab;
+  touch-action: none;
 }
 
 .timeline-card {
@@ -930,6 +931,11 @@ select {
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
     background-color 220ms ease,
     z-index 0ms;
+}
+
+.timeline.is-scaling .timeline-card,
+.timeline.is-scaling .thumb {
+  transition: none;
 }
 
 .timeline-card.is-narrow .thumb {
@@ -1178,6 +1184,14 @@ select {
 .timeline-card.active:hover .thumb,
 .timeline-card.active.is-preview .thumb {
   background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+img.timeline-thumb-lazy:not([src]) {
+  opacity: 0;
+}
+
+.thumb:has(img.timeline-thumb-lazy:not([src])) {
+  background: color-mix(in srgb, var(--surface-soft) 65%, transparent);
 }
 
 .thumb img,
