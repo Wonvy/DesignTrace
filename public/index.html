@@ -117,7 +117,28 @@
             </div>
           </div>
         </div>
-        <div id="timeline" class="timeline" tabindex="0"></div>
+        <div class="timeline-body">
+          <div id="timeline" class="timeline" tabindex="0"></div>
+          <aside id="heatmapPanel" class="heatmap-panel" aria-label="项目活跃热力图">
+            <button
+              id="heatmapToggle"
+              class="heatmap-toggle"
+              type="button"
+              aria-label="折叠热力图"
+              aria-expanded="true"
+              aria-controls="heatmap"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 7.5 9 12l5.5 4.5" />
+              </svg>
+            </button>
+            <div class="heatmap-panel-body">
+              <div class="heatmap-heading">活动日历</div>
+              <div id="heatmap" class="heatmap" role="img" aria-label="按日统计的项目数量"></div>
+            </div>
+          </aside>
+        </div>
+        <div id="heatmapTooltip" class="heatmap-tooltip" role="tooltip" hidden></div>
       </section>
 
       <footer class="statusbar" aria-live="polite">

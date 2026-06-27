@@ -37,7 +37,9 @@
     heroImageDims: null,
     timelineRenderGeneration: 0,
     timelineTimeRangeCache: null,
-    lastDragReleaseAt: 0
+    lastDragReleaseAt: 0,
+    heatmapCollapsed: false,
+    heatmapHoverDay: ""
   };
 
   var timelineLayoutFrame = null;
@@ -52,6 +54,7 @@
   var HERO_THUMB_MAX_WIDTH = 240;
   var TIMELINE_VISIBLE_BUFFER = 4;
   var TIMELINE_VIRTUALIZE_MIN = 120;
+  var HEATMAP_TOOLTIP_LIMIT = 8;
   var scanUiLastAt = 0;
 
   var els = {
@@ -71,6 +74,10 @@
     scanOverlay: document.getElementById("scanOverlay"),
     scanText: document.getElementById("scanText"),
     timeline: document.getElementById("timeline"),
+    heatmapPanel: document.getElementById("heatmapPanel"),
+    heatmapToggle: document.getElementById("heatmapToggle"),
+    heatmap: document.getElementById("heatmap"),
+    heatmapTooltip: document.getElementById("heatmapTooltip"),
     autoplayButton: document.getElementById("autoplayButton"),
     scopeFilterSelect: document.getElementById("scopeFilterSelect"),
     extFilter: document.getElementById("extFilter"),
@@ -113,13 +120,13 @@
   var TIMELINE = {
     cardWidth: 156,
     cardGap: 24,
-    minStep: 14,
-    minimalWidth: 44,
+    minStep: 8,
+    minimalWidth: 32,
     padding: 168,
     metaHeight: 52,
-    minThumbHeight: 28,
-    minThumbHeightMinimal: 14,
-    scaleMin: 0.5,
+    minThumbHeight: 24,
+    minThumbHeightMinimal: 8,
+    scaleMin: 0.1,
     scaleMax: 3,
     scaleSteps: 100
   };
@@ -1089,6 +1096,7 @@
   function render() {
     renderHero();
     renderTimeline();
+    renderHeatmap();
     renderControls();
   }
 
@@ -1639,6 +1647,299 @@
     }
   }
 
+  function dayKeyFromDate(date) {
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, "0");
+    var day = String(date.getDate()).padStart(2, "0");
+    return year + "-" + month + "-" + day;
+  }
+
+  function dayKeyFromIso(iso) {
+    var date = new Date(iso);
+    if (!Number.isFinite(date.getTime())) return "";
+    return dayKeyFromDate(date);
+  }
+
+  function daysInMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+  }
+
+  function heatmapLevel(count) {
+    if (count <= 0) return 0;
+    if (count === 1) return 1;
+    if (count === 2) return 2;
+    if (count === 3) return 3;
+    return 4;
+  }
+
+  function buildHeatmapBuckets() {
+    var buckets = new Map();
+    state.filtered.forEach(function (project) {
+      var key = dayKeyFromIso(project.lastActiveAt || project.modifiedAt || project.createdAt);
+      if (!key) return;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(project);
+    });
+    buckets.forEach(function (projects) {
+      projects.sort(function (a, b) {
+        return new Date(b.lastActiveAt || b.modifiedAt || 0) - new Date(a.lastActiveAt || a.modifiedAt || 0);
+      });
+    });
+    return buckets;
+  }
+
+  function buildHeatmapMonthGrid(year, monthIndex, buckets) {
+    var totalDays = daysInMonth(year, monthIndex);
+    var leading = new Date(year, monthIndex, 1).getDay();
+    var cells = [];
+    var pad;
+
+    for (pad = 0; pad < leading; pad += 1) cells.push(null);
+    for (var day = 1; day <= totalDays; day += 1) {
+      var date = new Date(year, monthIndex, day);
+      var key = dayKeyFromDate(date);
+      cells.push({
+        date: date,
+        key: key,
+        day: day,
+        projects: buckets.get(key) || []
+      });
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    return {
+      year: year,
+      month: monthIndex + 1,
+      label: (monthIndex + 1) + "月",
+      cells: cells
+    };
+  }
+
+  function buildHeatmapCalendar(buckets) {
+    var times = state.filtered.map(function (project) {
+      return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt).getTime();
+    }).filter(function (time) {
+      return Number.isFinite(time) && time > 0;
+    });
+    if (!times.length) return [];
+
+    var minDate = new Date(Math.min.apply(null, times));
+    var maxDate = new Date(Math.max.apply(null, times));
+    var cursorYear = minDate.getFullYear();
+    var cursorMonth = minDate.getMonth();
+    var endYear = maxDate.getFullYear();
+    var endMonth = maxDate.getMonth();
+    var years = [];
+    var yearMap = new Map();
+
+    while (cursorYear < endYear || (cursorYear === endYear && cursorMonth <= endMonth)) {
+      if (!yearMap.has(cursorYear)) {
+        yearMap.set(cursorYear, { year: cursorYear, months: [] });
+        years.push(yearMap.get(cursorYear));
+      }
+      yearMap.get(cursorYear).months.push(buildHeatmapMonthGrid(cursorYear, cursorMonth, buckets));
+      cursorMonth += 1;
+      if (cursorMonth > 11) {
+        cursorMonth = 0;
+        cursorYear += 1;
+      }
+    }
+    return years;
+  }
+
+  function formatHeatmapDayLabel(date) {
+    return new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "short"
+    }).format(date);
+  }
+
+  function hideHeatmapTooltip() {
+    state.heatmapHoverDay = "";
+    if (!els.heatmapTooltip) return;
+    els.heatmapTooltip.hidden = true;
+    els.heatmapTooltip.innerHTML = "";
+    if (els.heatmap) {
+      els.heatmap.querySelectorAll(".heatmap-cell.is-hover").forEach(function (cell) {
+        cell.classList.remove("is-hover");
+      });
+    }
+  }
+
+  function positionHeatmapTooltip(cell) {
+    if (!els.heatmapTooltip || els.heatmapTooltip.hidden) return;
+    var rect = cell.getBoundingClientRect();
+    var tooltipRect = els.heatmapTooltip.getBoundingClientRect();
+    var left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    var top = rect.top - tooltipRect.height - 10;
+    if (top < 8) top = rect.bottom + 10;
+    left = Math.max(8, Math.min(window.innerWidth - tooltipRect.width - 8, left));
+    top = Math.max(8, Math.min(window.innerHeight - tooltipRect.height - 8, top));
+    els.heatmapTooltip.style.left = left + "px";
+    els.heatmapTooltip.style.top = top + "px";
+  }
+
+  function showHeatmapTooltip(cell, cellData) {
+    if (!els.heatmapTooltip || !cellData) return;
+    var projects = cellData.projects || [];
+    state.heatmapHoverDay = cellData.key;
+    if (els.heatmap) {
+      els.heatmap.querySelectorAll(".heatmap-cell.is-hover").forEach(function (item) {
+        item.classList.remove("is-hover");
+      });
+      cell.classList.add("is-hover");
+    }
+
+    var html = [
+      '<div class="heatmap-tooltip-date">' + formatHeatmapDayLabel(cellData.date) + "</div>",
+      '<div class="heatmap-tooltip-count">' + (projects.length ? projects.length + " 个项目" : "当天无项目") + "</div>"
+    ];
+    if (projects.length) {
+      html.push('<ul class="heatmap-tooltip-list">');
+      projects.slice(0, HEATMAP_TOOLTIP_LIMIT).forEach(function (project) {
+        html.push("<li>" + escapeHtml(project.displayName || project.name) + "</li>");
+      });
+      html.push("</ul>");
+      if (projects.length > HEATMAP_TOOLTIP_LIMIT) {
+        html.push('<div class="heatmap-tooltip-more">还有 ' + (projects.length - HEATMAP_TOOLTIP_LIMIT) + " 个项目</div>");
+      }
+    }
+    els.heatmapTooltip.innerHTML = html.join("");
+    els.heatmapTooltip.hidden = false;
+    requestAnimationFrame(function () {
+      positionHeatmapTooltip(cell);
+    });
+  }
+
+  function bindHeatmapCellEvents(cell, cellData) {
+    cell.addEventListener("mouseenter", function () {
+      showHeatmapTooltip(cell, cellData);
+    });
+    cell.addEventListener("mouseleave", function () {
+      hideHeatmapTooltip();
+    });
+    cell.addEventListener("focus", function () {
+      showHeatmapTooltip(cell, cellData);
+    });
+    cell.addEventListener("blur", function () {
+      hideHeatmapTooltip();
+    });
+    cell.addEventListener("click", function () {
+      if (!cellData.projects.length) return;
+      var targetId = cellData.projects[0].id;
+      var index = state.filtered.findIndex(function (project) {
+        return project.id === targetId;
+      });
+      if (index >= 0) selectIndex(index, { center: true });
+    });
+  }
+
+  function createHeatmapCell(cellData) {
+    if (!cellData) {
+      var spacer = document.createElement("span");
+      spacer.className = "heatmap-cell-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      return spacer;
+    }
+
+    var count = cellData.projects.length;
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "heatmap-cell level-" + heatmapLevel(count);
+    if (!count) button.classList.add("is-muted");
+    if (cellData.key === dayKeyFromDate(new Date())) button.classList.add("is-today");
+    button.dataset.day = cellData.key;
+    button.textContent = String(cellData.day);
+    button.setAttribute(
+      "aria-label",
+      formatHeatmapDayLabel(cellData.date) + (count ? "，" + count + " 个项目" : "，无项目")
+    );
+    bindHeatmapCellEvents(button, cellData);
+    return button;
+  }
+
+  function renderHeatmap() {
+    if (!els.heatmap || !els.heatmapPanel) return;
+    hideHeatmapTooltip();
+    els.heatmap.innerHTML = "";
+    els.heatmapPanel.classList.toggle("is-collapsed", state.heatmapCollapsed);
+    if (els.heatmapToggle) {
+      els.heatmapToggle.setAttribute("aria-expanded", state.heatmapCollapsed ? "false" : "true");
+      els.heatmapToggle.setAttribute("aria-label", state.heatmapCollapsed ? "展开热力图" : "折叠热力图");
+    }
+
+    if (state.heatmapCollapsed || !state.filtered.length) {
+      if (!state.heatmapCollapsed && !state.filtered.length) {
+        els.heatmap.innerHTML = '<div class="heatmap-empty">无数据</div>';
+      }
+      return;
+    }
+
+    var buckets = buildHeatmapBuckets();
+    var calendar = buildHeatmapCalendar(buckets);
+    if (!calendar.length) {
+      els.heatmap.innerHTML = '<div class="heatmap-empty">无数据</div>';
+      return;
+    }
+
+    var root = document.createElement("div");
+    root.className = "heatmap-calendar";
+    var weekdayLabels = ["日", "一", "二", "三", "四", "五", "六"];
+
+    calendar.forEach(function (yearBlock) {
+      var yearSection = document.createElement("section");
+      yearSection.className = "heatmap-year";
+
+      var yearTitle = document.createElement("div");
+      yearTitle.className = "heatmap-year-label";
+      yearTitle.textContent = String(yearBlock.year) + " 年";
+      yearSection.appendChild(yearTitle);
+
+      yearBlock.months.forEach(function (monthBlock) {
+        var monthSection = document.createElement("section");
+        monthSection.className = "heatmap-month";
+
+        var monthTitle = document.createElement("div");
+        monthTitle.className = "heatmap-month-label";
+        monthTitle.textContent = monthBlock.label;
+        monthSection.appendChild(monthTitle);
+
+        var weekdays = document.createElement("div");
+        weekdays.className = "heatmap-month-weekdays";
+        weekdayLabels.forEach(function (label) {
+          var item = document.createElement("span");
+          item.textContent = label;
+          weekdays.appendChild(item);
+        });
+        monthSection.appendChild(weekdays);
+
+        var grid = document.createElement("div");
+        grid.className = "heatmap-month-grid";
+        monthBlock.cells.forEach(function (cellData) {
+          grid.appendChild(createHeatmapCell(cellData));
+        });
+        monthSection.appendChild(grid);
+        yearSection.appendChild(monthSection);
+      });
+
+      root.appendChild(yearSection);
+    });
+
+    els.heatmap.appendChild(root);
+    var todayCell = root.querySelector('[data-day="' + dayKeyFromDate(new Date()) + '"]');
+    if (todayCell) {
+      todayCell.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }
+
+  function toggleHeatmapPanel() {
+    state.heatmapCollapsed = !state.heatmapCollapsed;
+    localStorage.setItem("designtrace:heatmapCollapsed", state.heatmapCollapsed ? "1" : "0");
+    renderHeatmap();
+  }
+
   function renderStatusBar() {
     if (!els.statusPath || !els.statusFile || !els.statusStats || !els.statusDates) return;
     updateStatusSlider();
@@ -1774,7 +2075,7 @@
     } else {
       thumbHeight = 88;
     }
-    var metaHeight = minimal ? 0 : (narrow ? Math.max(32, Math.round(TIMELINE.metaHeight * actualCardWidth / TIMELINE.cardWidth)) : TIMELINE.metaHeight);
+    var metaHeight = minimal ? 0 : (narrow ? Math.max(24, Math.round(TIMELINE.metaHeight * actualCardWidth / TIMELINE.cardWidth)) : TIMELINE.metaHeight);
     return {
       actualCardWidth: actualCardWidth,
       thumbHeight: thumbHeight,
@@ -1790,7 +2091,9 @@
     var idealWidth = TIMELINE.padding * 2 + TIMELINE.cardWidth + Math.max(0, count - 1) * fullStep;
     var viewport = els.timeline.clientWidth || 1000;
     var scaledIdeal = idealWidth * state.timelineScale;
-    var trackWidth = Math.max(viewport, scaledIdeal);
+    var minTrackWidth = TIMELINE.padding * 2 + TIMELINE.minStep + Math.max(0, count - 1) * TIMELINE.minStep;
+    var trackWidth = Math.max(scaledIdeal, minTrackWidth);
+    if (count <= 1) trackWidth = Math.max(trackWidth, viewport);
     var span = trackWidth - TIMELINE.padding * 2 - TIMELINE.cardWidth;
     var step = count > 1 ? span / (count - 1) : fullStep;
 
@@ -2121,6 +2424,14 @@
       { passive: false }
     );
 
+    if (els.heatmapToggle) {
+      els.heatmapToggle.addEventListener("click", toggleHeatmapPanel);
+    }
+    if (els.heatmap) {
+      els.heatmap.addEventListener("scroll", hideHeatmapTooltip);
+    }
+    window.addEventListener("scroll", hideHeatmapTooltip, true);
+
     els.pickDirectoryButton.addEventListener("click", pickDirectory);
     els.rescanButton.addEventListener("click", rescan);
     els.themeButton.addEventListener("click", toggleTheme);
@@ -2295,6 +2606,7 @@
     window.addEventListener("resize", function () {
       scheduleTimelineLayout(true);
       centerActiveThumb(true);
+      hideHeatmapTooltip();
     });
   }
 
@@ -2318,6 +2630,7 @@
   }
 
   applyTheme(localStorage.getItem("designtrace:theme"));
+  state.heatmapCollapsed = localStorage.getItem("designtrace:heatmapCollapsed") === "1";
   updateFolderTooltip();
   updateExtensionFilterOptions();
   bindEvents();
