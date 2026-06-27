@@ -93,6 +93,9 @@
   var PREVIEW_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".html"]);
   var IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]);
   var CODE_EXTENSIONS = new Set([".js", ".ts", ".tsx", ".jsx", ".vue", ".svelte", ".py", ".rs", ".go", ".java", ".cs", ".cpp", ".c", ".html", ".css"]);
+  var DESIGN_SOURCE_EXTENSIONS = new Set([
+    ".cdr", ".psd", ".ai", ".eps", ".pptx", ".ppt", ".indd", ".xd", ".sketch", ".afdesign"
+  ]);
   var TYPE_RULES = [
     ["package.json", "Web / Node", 40],
     ["vite.config.js", "Vite App", 20],
@@ -110,12 +113,14 @@
   var TIMELINE = {
     cardWidth: 156,
     cardGap: 24,
-    minStep: 28,
+    minStep: 14,
+    minimalWidth: 44,
     padding: 168,
     metaHeight: 52,
-    minThumbHeight: 30,
-    scaleMin: 0.7,
-    scaleMax: 8,
+    minThumbHeight: 28,
+    minThumbHeightMinimal: 14,
+    scaleMin: 0.5,
+    scaleMax: 3,
     scaleSteps: 100
   };
   var MAX_FOLDER_DEPTH = 6;
@@ -166,6 +171,87 @@
       hash = Math.imul(hash, 16777619);
     }
     return (hash >>> 0).toString(16);
+  }
+
+  function normalizeYear(value, digits) {
+    if (digits >= 4) return value;
+    return 2000 + value;
+  }
+
+  function makeCalendarDate(year, month, day) {
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    var date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+    return date;
+  }
+
+  function resolveYearFromPath(relativePath, rootName) {
+    var segments = relativePath.split("/").filter(Boolean);
+    if (segments.length) segments.pop();
+    var candidates = segments.slice().reverse().concat([rootName]);
+    for (var index = 0; index < candidates.length; index += 1) {
+      var segment = candidates[index];
+      var fullYear = segment.match(/^#?(\d{4})年?$/);
+      if (fullYear) return parseInt(fullYear[1], 10);
+      var shortYear = segment.match(/^#?(\d{2})年?$/);
+      if (shortYear) return normalizeYear(parseInt(shortYear[1], 10), 2);
+      var parsed = parseFolderDate(segment, segment, rootName);
+      if (parsed && parsed.source === "name-full") {
+        return new Date(parsed.iso).getFullYear();
+      }
+    }
+    return null;
+  }
+
+  function parseFolderDate(folderName, relativePath, rootName) {
+    var name = String(folderName || "").trim();
+    if (!name) return null;
+
+    var cnFull = name.match(/^(\d{2}|\d{4})年(\d{1,2})月(\d{1,2})(?:日|号)?(?=\s|$|[-_.])/);
+    if (cnFull) {
+      var cnYear = normalizeYear(parseInt(cnFull[1], 10), cnFull[1].length);
+      var cnDate = makeCalendarDate(cnYear, parseInt(cnFull[2], 10), parseInt(cnFull[3], 10));
+      if (cnDate) return { iso: cnDate.toISOString(), source: "name-full" };
+    }
+
+    var numFull = name.match(/^(\d{2}|\d{4})[-.\s](\d{1,2})[-.\s](\d{1,2})(?=\s|$|[-_.])/);
+    if (numFull) {
+      var numYear = normalizeYear(parseInt(numFull[1], 10), numFull[1].length);
+      var numDate = makeCalendarDate(numYear, parseInt(numFull[2], 10), parseInt(numFull[3], 10));
+      if (numDate) return { iso: numDate.toISOString(), source: "name-full" };
+    }
+
+    var cnMonthDay = name.match(/^(\d{1,2})月(\d{1,2})(?:日|号)?(?=\s|$|[-_.])/);
+    if (cnMonthDay) {
+      var cnPathYear = resolveYearFromPath(relativePath, rootName);
+      if (cnPathYear) {
+        var cnMdDate = makeCalendarDate(cnPathYear, parseInt(cnMonthDay[1], 10), parseInt(cnMonthDay[2], 10));
+        if (cnMdDate) return { iso: cnMdDate.toISOString(), source: "name-month-day" };
+      }
+      return null;
+    }
+
+    var numMonthDay = name.match(/^(\d{1,2})[-.\s](\d{1,2})(?=\s|$|[-_.])/);
+    if (numMonthDay && parseInt(numMonthDay[1], 10) <= 12) {
+      var mdYear = resolveYearFromPath(relativePath, rootName);
+      if (mdYear) {
+        var mdDate = makeCalendarDate(mdYear, parseInt(numMonthDay[1], 10), parseInt(numMonthDay[2], 10));
+        if (mdDate) return { iso: mdDate.toISOString(), source: "name-month-day" };
+      }
+      return null;
+    }
+
+    return null;
+  }
+
+  function isLayerOneRelativePath(relativePath) {
+    return relativePath.indexOf("/") < 0 || relativePath.split("/").filter(Boolean).length === 2;
+  }
+
+  function layerOneFolderLabel(relativePath) {
+    var segments = relativePath.split("/").filter(Boolean);
+    if (segments.length <= 1) return "项目根目录";
+    return segments[0];
   }
 
   function revokeObjectUrls() {
@@ -423,19 +509,32 @@
   async function registerFolderProject(directoryHandle, rootName, relativePath, depth, buckets) {
     if (depth > MAX_FOLDER_DEPTH) return;
 
+    var folderName = relativePath.split("/").pop() || directoryHandle.name;
+    var folderDate = parseFolderDate(folderName, relativePath, rootName);
+
+    for await (var childEntry of directoryHandle.values()) {
+      if (childEntry.kind !== "directory" || IGNORE_NAMES.has(childEntry.name)) continue;
+      await registerFolderProject(
+        childEntry,
+        rootName,
+        relativePath + "/" + childEntry.name,
+        depth + 1,
+        buckets
+      );
+    }
+
+    if (!folderDate) return;
+
     var path = rootName + "/" + relativePath;
     if (buckets.has(path)) return;
 
     setScanProgress("正在分析 " + relativePath + "...");
     var bucket = createBucket(directoryHandle.name, path, rootName, relativePath);
     bucket.directoryHandle = directoryHandle;
+    bucket.folderDate = folderDate.iso;
+    bucket.folderDateSource = folderDate.source;
     await addDirectoryToBucket(bucket, directoryHandle, "", 0);
     buckets.set(path, bucket);
-
-    for await (var entry of directoryHandle.values()) {
-      if (entry.kind !== "directory" || IGNORE_NAMES.has(entry.name)) continue;
-      await registerFolderProject(entry, rootName, relativePath + "/" + entry.name, depth + 1, buckets);
-    }
   }
   async function addDirectoryToBucket(bucket, directoryHandle, basePath, depth) {
     if (depth > MAX_FOLDER_DEPTH) return;
@@ -481,12 +580,17 @@
       dirNames: new Set(),
       previews: [],
       recentFiles: [],
+      layerOneFiles: [],
+      designSourceTimes: [],
+      folderDate: null,
+      folderDateSource: null,
       fileCount: 0,
       sizeBytes: 0,
       latestModified: 0,
       earliestModified: Number.POSITIVE_INFINITY,
       imageCount: 0,
-      codeCount: 0
+      codeCount: 0,
+      designSourceCount: 0
     };
   }
 
@@ -521,15 +625,47 @@
 
     bucket.recentFiles.push(meta);
     if (PREVIEW_EXTENSIONS.has(ext)) bucket.previews.push(meta);
+
+    var depth = folders.length;
+    if (isLayerOneRelativePath(relativePath)) {
+      bucket.layerOneFiles.push(meta);
+    }
+    if (depth === 0 && DESIGN_SOURCE_EXTENSIONS.has(ext)) {
+      bucket.designSourceTimes.push(file.lastModified);
+      bucket.designSourceCount += 1;
+    }
   }
 
   function toProject(bucket) {
+    if (!bucket.folderDate) return null;
+
     var classification = classify(bucket);
-    var score = classification.score + Math.min(24, Math.floor(bucket.fileCount / 5));
-    if (score < 12 && bucket.fileCount < 3) return null;
+    var folderDateIso = bucket.folderDate;
+    var createdAt;
+    var modifiedAt;
+    var lastActiveAt;
+
+    if (bucket.designSourceTimes.length) {
+      var minTime = Math.min.apply(null, bucket.designSourceTimes);
+      var maxTime = Math.max.apply(null, bucket.designSourceTimes);
+      createdAt = toIso(minTime);
+      modifiedAt = toIso(maxTime);
+      lastActiveAt = modifiedAt;
+    } else {
+      createdAt = folderDateIso;
+      modifiedAt = folderDateIso;
+      lastActiveAt = folderDateIso;
+    }
 
     bucket.recentFiles.sort(function (a, b) {
       return new Date(b.modifiedAt) - new Date(a.modifiedAt);
+    });
+
+    bucket.layerOneFiles.sort(function (a, b) {
+      var folderA = layerOneFolderLabel(a.relativePath);
+      var folderB = layerOneFolderLabel(b.relativePath);
+      if (folderA !== folderB) return folderA.localeCompare(folderB, "zh-CN");
+      return a.name.localeCompare(b.name, "zh-CN");
     });
 
     var imageFiles = bucket.recentFiles
@@ -553,6 +689,20 @@
         return new Date(b.modifiedAt) - new Date(a.modifiedAt);
       });
 
+    var layerOneFiles = bucket.layerOneFiles.map(function (file) {
+      return {
+        name: file.name,
+        path: file.path,
+        relativePath: file.relativePath,
+        folderKey: fileFolderKey(file.relativePath),
+        folderLabel: layerOneFolderLabel(file.relativePath),
+        modifiedAt: file.modifiedAt,
+        sizeBytes: file.sizeBytes,
+        extension: file.extension,
+        file: file.file
+      };
+    });
+
     var extensionSet = new Set();
     bucket.recentFiles.forEach(function (file) {
       if (file.extension) extensionSet.add(file.extension);
@@ -565,17 +715,20 @@
       path: bucket.path,
       parentPath: bucket.parentPath,
       relativePath: bucket.relativePath,
-      createdAt: toIso(bucket.earliestModified),
-      modifiedAt: toIso(bucket.latestModified),
-      lastActiveAt: bucket.recentFiles[0] ? bucket.recentFiles[0].modifiedAt : toIso(bucket.latestModified),
+      createdAt: createdAt,
+      modifiedAt: modifiedAt,
+      lastActiveAt: lastActiveAt,
+      folderDate: folderDateIso,
+      folderDateSource: bucket.folderDateSource,
       fileCount: bucket.fileCount,
       folderCount: bucket.dirNames.size,
       sizeBytes: bucket.sizeBytes,
       projectType: classification.type,
-      score: score,
+      score: classification.score,
       previewFiles: bucket.previews.slice(0, 8),
       recentFiles: bucket.recentFiles.slice(0, 8),
       imageFiles: imageFiles,
+      layerOneFiles: layerOneFiles,
       extensions: Array.from(extensionSet).sort(),
       directoryHandle: bucket.directoryHandle || null
     };
@@ -588,8 +741,12 @@
   }
 
   function classify(bucket) {
-    var type = "Folder Project";
-    var score = 0;
+    var type = "Design Project";
+    var score = 20;
+    if (bucket.designSourceCount > 0) {
+      type = "Design Source";
+      score += 24;
+    }
     TYPE_RULES.forEach(function (rule) {
       if (bucket.fileNames.has(rule[0].toLowerCase())) {
         type = rule[1];
@@ -597,7 +754,7 @@
       }
     });
     if (bucket.imageCount >= 4) {
-      type = type === "Folder Project" ? "Visual Assets" : type;
+      type = type === "Design Project" ? "Visual Assets" : type;
       score += 18;
     }
     if (bucket.codeCount >= 8) score += 12;
@@ -946,7 +1103,7 @@
       els.heroArtwork.classList.remove("is-loading");
       els.heroThumbs.innerHTML = "";
       els.heroThumbs.hidden = true;
-      els.slideshowStage.classList.remove("has-thumbs", "is-preview");
+      els.slideshowStage.classList.remove("has-sidepanel", "is-preview");
       els.heroKicker.textContent = "DesignTrace";
       els.heroTitle.textContent = "选择文件夹开始";
       els.heroMeta.textContent = "本地读取，未上传。";
@@ -957,7 +1114,7 @@
     var ordinal = state.selectedIndex + 1 + " / " + state.filtered.length;
     var filterNotes = activeFilterLabels();
     var currentFile = hoverPreview ? primaryDisplayImage(displayProject) : ensurePreview(selectedProject);
-    var thumbs = hoverPreview ? [] : folderImages(selectedProject, currentFile);
+    var sideFiles = hoverPreview ? [] : projectLayerOneFiles(selectedProject);
 
     state.heroCurrentFile = currentFile || null;
     if (!currentFile || !state.heroImageDims || state.heroImageDims.path !== currentFile.path) {
@@ -965,8 +1122,8 @@
     }
 
     loadHeroArtwork(displayProject, currentFile, hoverPreview);
-    renderHeroThumbs(selectedProject, thumbs, currentFile, hoverPreview);
-    els.slideshowStage.classList.toggle("has-thumbs", thumbs.length > 1);
+    renderHeroSideFiles(selectedProject, sideFiles, currentFile, hoverPreview);
+    els.slideshowStage.classList.toggle("has-sidepanel", !hoverPreview && !!selectedProject);
     els.slideshowStage.classList.toggle("is-preview", hoverPreview);
     els.heroKicker.textContent = [
       displayProject.projectType,
@@ -986,9 +1143,15 @@
     var preview = currentFile || previewFile(displayProject);
     var gen = ++heroRenderGeneration;
 
-    if (!preview || !IMAGE_EXTENSIONS.has(preview.extension)) {
+    if (!preview) {
       els.heroArtwork.classList.remove("is-loading");
       els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, displayProject.path);
+      return;
+    }
+
+    if (!IMAGE_EXTENSIONS.has(preview.extension)) {
+      els.heroArtwork.classList.remove("is-loading");
+      els.heroArtwork.innerHTML = emptyArtwork(preview.name, preview.extension || preview.path);
       return;
     }
 
@@ -1067,34 +1230,36 @@
     });
   }
 
+  function projectLayerOneFiles(project) {
+    if (!project || !project.layerOneFiles) return [];
+    return project.layerOneFiles;
+  }
+
   function ensurePreview(project) {
-    var images = displayableImages(project);
-    if (!project || !images.length) {
+    var files = projectLayerOneFiles(project);
+    if (!project || !files.length) {
       state.previewPath = "";
       state.previewProjectId = project ? project.id : "";
       return null;
     }
     if (state.previewProjectId !== project.id) {
       state.previewProjectId = project.id;
-      state.previewPath = images[0].path;
+      var firstImage = files.find(function (file) {
+        return IMAGE_EXTENSIONS.has(file.extension);
+      });
+      state.previewPath = (firstImage || files[0]).path;
     }
-    var current = images.find(function (file) {
+    var current = files.find(function (file) {
       return file.path === state.previewPath;
     });
     if (!current) {
-      state.previewPath = images[0].path;
-      current = images[0];
+      var fallbackImage = files.find(function (file) {
+        return IMAGE_EXTENSIONS.has(file.extension);
+      });
+      current = fallbackImage || files[0];
+      state.previewPath = current.path;
     }
     return current;
-  }
-
-  function folderImages(project, currentFile) {
-    if (!project) return [];
-    var images = displayableImages(project);
-    if (!currentFile) return images;
-    return images.filter(function (file) {
-      return file.folderKey === currentFile.folderKey;
-    });
   }
 
   function previewFile(project) {
@@ -1102,62 +1267,90 @@
     return ensurePreview(project) || primaryDisplayImage(project);
   }
 
-  function renderHeroThumbs(project, thumbs, currentFile, hoverPreview) {
+  function renderHeroSideFiles(project, files, currentFile, hoverPreview) {
     els.heroThumbs.innerHTML = "";
-    if (hoverPreview || !thumbs || thumbs.length <= 1) {
+    if (hoverPreview) {
       els.heroThumbs.hidden = true;
+      return;
+    }
+    els.heroThumbs.hidden = false;
+    if (!files.length) {
+      els.heroThumbs.innerHTML = '<div class="hero-file-empty">暂无第一层文件</div>';
       return;
     }
     var gen = heroRenderGeneration;
     els.heroThumbs.hidden = false;
-    thumbs.forEach(function (file) {
+
+    var lastGroup = null;
+    files.forEach(function (file) {
+      if (file.folderLabel !== lastGroup) {
+        lastGroup = file.folderLabel;
+        var heading = document.createElement("div");
+        heading.className = "hero-file-group";
+        heading.textContent = lastGroup;
+        els.heroThumbs.appendChild(heading);
+      }
+
       var button = document.createElement("button");
       button.type = "button";
-      button.className = "hero-thumb" + (currentFile && file.path === currentFile.path ? " active" : "");
-      button.title = file.name;
-      button.innerHTML = '<span class="hero-thumb-spinner" aria-hidden="true"></span>'
-        + '<img class="hero-thumb-lazy" alt="' + escapeHtml(file.name) + '">';
+      button.className = "hero-file-item"
+        + (currentFile && file.path === currentFile.path ? " active" : "")
+        + (IMAGE_EXTENSIONS.has(file.extension) ? " is-image" : " is-file");
+      button.title = file.relativePath;
+      button.dataset.path = file.path;
+
+      if (IMAGE_EXTENSIONS.has(file.extension)) {
+        button.innerHTML = [
+          '<span class="hero-thumb-spinner" aria-hidden="true"></span>',
+          '<img class="hero-thumb-lazy" alt="' + escapeHtml(file.name) + '">',
+          '<span class="hero-file-name">' + escapeHtml(file.name) + "</span>"
+        ].join("");
+        button.classList.add("is-loading");
+        scaledImageUrl(file.file, file.path, HERO_THUMB_MAX_WIDTH, 0.78).then(function (url) {
+          if (gen !== heroRenderGeneration) return;
+          var img = button.querySelector("img.hero-thumb-lazy");
+          if (!img || !img.isConnected) return;
+          img.src = url;
+          img.classList.remove("hero-thumb-lazy");
+          button.classList.remove("is-loading");
+        }).catch(function () {
+          button.classList.remove("is-loading");
+        });
+      } else {
+        button.innerHTML = [
+          '<span class="hero-file-badge">' + escapeHtml((file.extension || "file").replace(".", "").toUpperCase()) + "</span>",
+          '<span class="hero-file-name">' + escapeHtml(file.name) + "</span>"
+        ].join("");
+      }
+
       button.addEventListener("click", function () {
         state.previewPath = file.path;
         state.previewProjectId = project.id;
         renderHero();
       });
       els.heroThumbs.appendChild(button);
-
-      scaledImageUrl(file.file, file.path, HERO_THUMB_MAX_WIDTH, 0.78).then(function (url) {
-        if (gen !== heroRenderGeneration) return;
-        var img = button.querySelector("img.hero-thumb-lazy");
-        if (!img || !img.isConnected) return;
-        img.src = url;
-        img.classList.remove("hero-thumb-lazy");
-        button.classList.remove("is-loading");
-      }).catch(function () {
-        button.classList.remove("is-loading");
-      });
-      button.classList.add("is-loading");
     });
-    var activeThumb = els.heroThumbs.querySelector(".hero-thumb.active");
-    if (activeThumb) {
-      activeThumb.scrollIntoView({ block: "nearest" });
-    }
+
+    var activeItem = els.heroThumbs.querySelector(".hero-file-item.active");
+    if (activeItem) activeItem.scrollIntoView({ block: "nearest" });
   }
 
   function stepHeroThumb(direction) {
     var project = heroProject();
     if (!project) return false;
+    var files = projectLayerOneFiles(project);
+    if (files.length <= 1) return false;
     var currentFile = ensurePreview(project);
-    var thumbs = folderImages(project, currentFile);
-    if (thumbs.length <= 1) return false;
     var currentIndex = 0;
-    for (var i = 0; i < thumbs.length; i++) {
-      if (currentFile && thumbs[i].path === currentFile.path) {
+    for (var i = 0; i < files.length; i += 1) {
+      if (currentFile && files[i].path === currentFile.path) {
         currentIndex = i;
         break;
       }
     }
-    var nextIndex = (currentIndex + direction + thumbs.length) % thumbs.length;
+    var nextIndex = (currentIndex + direction + files.length) % files.length;
     if (nextIndex === currentIndex) return false;
-    state.previewPath = thumbs[nextIndex].path;
+    state.previewPath = files[nextIndex].path;
     state.previewProjectId = project.id;
     renderHero();
     return true;
@@ -1301,6 +1494,7 @@
     card.style.setProperty("--card-height", metrics.cardHeight + "px");
     card.style.setProperty("--thumb-height", metrics.thumbHeight + "px");
     card.classList.toggle("is-narrow", metrics.narrow);
+    card.classList.toggle("is-minimal", metrics.minimal);
   }
 
   function bindTimelineCardEvents(card, project, index) {
@@ -1348,7 +1542,7 @@
     card.className = "timeline-card"
       + (isActive ? " active" : "")
       + (isPreview ? " is-preview" : "")
-      + (metrics.narrow ? " is-narrow" : "");
+      + (metrics.minimal ? " is-minimal" : metrics.narrow ? " is-narrow" : "");
     card.setAttribute("role", "button");
     card.setAttribute("tabindex", "0");
     card.dataset.index = String(index);
@@ -1567,18 +1761,26 @@
   }
 
   function timelineCardDimensions(metrics) {
-    var actualCardWidth = Math.min(TIMELINE.cardWidth, metrics.step);
+    var step = metrics.step;
+    var actualCardWidth = Math.min(TIMELINE.cardWidth, step);
     actualCardWidth = Math.max(TIMELINE.minStep, actualCardWidth);
-    var narrow = metrics.step < TIMELINE.cardWidth;
-    var thumbHeight = narrow
-      ? Math.max(TIMELINE.minThumbHeight, Math.round(88 * actualCardWidth / TIMELINE.cardWidth))
-      : 88;
-    var metaHeight = narrow ? Math.max(36, Math.round(TIMELINE.metaHeight * actualCardWidth / TIMELINE.cardWidth)) : TIMELINE.metaHeight;
+    var minimal = actualCardWidth <= TIMELINE.minimalWidth;
+    var narrow = !minimal && step < TIMELINE.cardWidth;
+    var thumbHeight;
+    if (minimal) {
+      thumbHeight = Math.max(TIMELINE.minThumbHeightMinimal, actualCardWidth);
+    } else if (narrow) {
+      thumbHeight = Math.max(TIMELINE.minThumbHeight, Math.round(88 * actualCardWidth / TIMELINE.cardWidth));
+    } else {
+      thumbHeight = 88;
+    }
+    var metaHeight = minimal ? 0 : (narrow ? Math.max(32, Math.round(TIMELINE.metaHeight * actualCardWidth / TIMELINE.cardWidth)) : TIMELINE.metaHeight);
     return {
       actualCardWidth: actualCardWidth,
       thumbHeight: thumbHeight,
       cardHeight: thumbHeight + metaHeight,
-      narrow: narrow
+      narrow: narrow,
+      minimal: minimal
     };
   }
 
