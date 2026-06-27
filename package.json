@@ -5,7 +5,8 @@
   "description": "Local project timeline browser prototype.",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js"
+    "check": "node --check server.js && node --check public/app.js",
+    "build:single": "node scripts/build-single-html.js"
   },
   "engines": {
     "node": ">=18"

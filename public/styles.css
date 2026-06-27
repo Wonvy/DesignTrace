@@ -29,7 +29,7 @@
   --slider-thumb-shadow-hover: 0 2px 8px rgba(29, 107, 97, 0.28);
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.42);
   --tick-active-shadow: drop-shadow(0 1px 2px rgba(29, 107, 97, 0.14));
-  --heatmap-level-empty: color-mix(in srgb, var(--muted) 26%, var(--surface-soft));
+  --heatmap-level-empty: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
   --scan-dim: rgba(8, 7, 6, 0.48);
   --timeline-height: 348px;
   --timeline-padding: 168px;
@@ -71,7 +71,7 @@
     --slider-thumb-shadow-hover: 0 2px 8px rgba(123, 199, 184, 0.32);
     --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
     --tick-active-shadow: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28));
-    --heatmap-level-empty: color-mix(in srgb, var(--muted) 32%, var(--surface-soft));
+    --heatmap-level-empty: color-mix(in srgb, var(--muted) 12%, var(--surface));
     --scan-dim: rgba(0, 0, 0, 0.58);
     color-scheme: dark;
   }
@@ -108,7 +108,7 @@
   --slider-thumb-shadow-hover: 0 2px 8px rgba(29, 107, 97, 0.28);
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.42);
   --tick-active-shadow: drop-shadow(0 1px 2px rgba(29, 107, 97, 0.14));
-  --heatmap-level-empty: color-mix(in srgb, var(--muted) 26%, var(--surface-soft));
+  --heatmap-level-empty: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
   --scan-dim: rgba(8, 7, 6, 0.48);
   color-scheme: light;
 }
@@ -144,7 +144,7 @@
   --slider-thumb-shadow-hover: 0 2px 8px rgba(123, 199, 184, 0.32);
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --tick-active-shadow: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28));
-  --heatmap-level-empty: color-mix(in srgb, var(--muted) 32%, var(--surface-soft));
+  --heatmap-level-empty: color-mix(in srgb, var(--muted) 12%, var(--surface));
   --scan-dim: rgba(0, 0, 0, 0.58);
   color-scheme: dark;
 }
@@ -497,6 +497,13 @@ html.is-slideshow-fullscreen body {
   border-radius: 50%;
   color: var(--accent);
   font-size: 10px;
+}
+
+.brand-version {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .toolbar {
@@ -1306,22 +1313,22 @@ html.is-slideshow-fullscreen body {
 }
 
 .heatmap-cell.level-1 {
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--ink);
 }
 
 .heatmap-cell.level-2 {
-  background: color-mix(in srgb, var(--accent) 44%, transparent);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
   color: var(--ink);
 }
 
 .heatmap-cell.level-3 {
-  background: color-mix(in srgb, var(--accent) 62%, transparent);
-  color: var(--on-accent);
+  background: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: var(--ink);
 }
 
 .heatmap-cell.level-4 {
-  background: color-mix(in srgb, var(--accent) 82%, transparent);
+  background: color-mix(in srgb, var(--accent) 58%, transparent);
   color: var(--on-accent);
 }
 
