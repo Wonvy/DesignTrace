@@ -20,7 +20,6 @@
     timelineHovering: false,
     dragPointerId: null,
     dragMoved: false,
-    view: "day",
     scopeFilter: "all",
     extFilter: ["all"],
     sizeFilter: "all",
@@ -560,7 +559,7 @@
   function finishScan(message) {
     var lastSelectedId = localStorage.getItem("designtrace:selectedProjectId");
     state.projects.sort(function (a, b) {
-      return new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0);
+      return new Date(a.lastActiveAt || 0) - new Date(b.lastActiveAt || 0);
     });
     state.selectedIndex = 0;
     state.timelineOffset = 0;
@@ -568,6 +567,9 @@
     requestAnimationFrame(function () {
       updateExtensionFilterOptions();
       applyFilters();
+      if (!lastSelectedId && state.filtered.length) {
+        state.selectedIndex = state.filtered.length - 1;
+      }
       ensureAutoplay();
       if (state.filtered[state.selectedIndex]) {
         state.anchorProjectId = state.filtered[state.selectedIndex].id;
@@ -1000,7 +1002,7 @@
       .sort(function (a, b) {
         if (sortKey === "name") return (a.displayName || a.name).localeCompare(b.displayName || b.name, "zh-CN");
         if (sortKey === "sizeBytes") return b.sizeBytes - a.sizeBytes;
-        return new Date(b[sortKey] || 0) - new Date(a[sortKey] || 0);
+        return new Date(a[sortKey] || 0) - new Date(b[sortKey] || 0);
       });
     state.timelineTimeRangeCache = null;
 
@@ -1224,6 +1226,10 @@
     } else {
       artImg.addEventListener("load", applyDims, { once: true });
     }
+  }
+
+  function projectTimelineDate(project) {
+    return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt);
   }
 
   function updateTimelineCardStates() {
@@ -1561,27 +1567,85 @@
     return card;
   }
 
-  function updateTickPositions(track, metrics) {
-    var tickCount = state.view === "day" ? 10 : state.view === "week" ? 8 : 6;
-    var ticks = track.querySelectorAll(".tick");
-    var labels = track.querySelectorAll(".tick-label");
-    if (ticks.length !== tickCount + 1 || labels.length !== Math.floor(tickCount / 2) + 1) {
-      track.querySelectorAll(".tick, .tick-label").forEach(function (node) {
-        node.remove();
-      });
-      renderTicks(track, metrics);
-      return;
-    }
-    var labelIndex = 0;
-    for (var index = 0; index <= tickCount; index += 1) {
-      var time = metrics.min + ((metrics.max - metrics.min) / tickCount) * index;
-      var x = timeToX(time, metrics);
-      ticks[index].style.left = x + "px";
-      if (index % 2 === 0 && labels[labelIndex]) {
-        labels[labelIndex].style.left = x + "px";
-        labelIndex += 1;
+  function appendTimelineAxisTick(track, x) {
+    var tick = document.createElement("div");
+    tick.className = "tick major";
+    tick.style.left = x + "px";
+    track.appendChild(tick);
+  }
+
+  function appendTimelineAxisLabel(track, x, html, classNames, align) {
+    var label = document.createElement("div");
+    label.className = "tick-label " + classNames.join(" ");
+    label.style.left = x + "px";
+    if (align === "start") label.classList.add("tick-label-start");
+    else if (align === "end") label.classList.add("tick-label-end");
+    label.innerHTML = html;
+    track.appendChild(label);
+  }
+
+  function timelineAxisMonthHtml(month) {
+    return '<span class="tick-month-num">' + month + '</span><span class="tick-month-suffix">月</span>';
+  }
+
+  function timelineAxisYearHtml(year) {
+    return '<span class="tick-year-num">' + year + '</span><span class="tick-year-suffix">年</span>';
+  }
+
+  function renderTicks(track, metrics) {
+    track.querySelectorAll(".tick, .tick-label").forEach(function (node) {
+      node.remove();
+    });
+    var count = state.filtered.length;
+    if (!count) return;
+
+    for (var index = 0; index < count; index += 1) {
+      var project = state.filtered[index];
+      var date = projectTimelineDate(project);
+      if (!Number.isFinite(date.getTime())) continue;
+
+      var year = date.getFullYear();
+      var month = date.getMonth() + 1;
+      var day = date.getDate();
+      var x = cardCenter(index, metrics);
+      var align = index === 0 ? "start" : (index === count - 1 ? "end" : "center");
+
+      appendTimelineAxisTick(track, x);
+
+      var prev = index > 0 ? projectTimelineDate(state.filtered[index - 1]) : null;
+      var prevValid = prev && Number.isFinite(prev.getTime());
+      var prevYear = prevValid ? prev.getFullYear() : null;
+      var prevMonth = prevValid ? prev.getMonth() + 1 : null;
+
+      if (index > 0 && prevValid && year !== prevYear) {
+        var xBetween = (cardCenter(index - 1, metrics) + x) / 2;
+        appendTimelineAxisLabel(track, xBetween, timelineAxisYearHtml(year), ["tick-label-year"], "center");
+      }
+
+      if (index === 0) {
+        appendTimelineAxisLabel(
+          track,
+          x,
+          timelineAxisYearHtml(year) + timelineAxisMonthHtml(month),
+          ["tick-label-month", "tick-label-year-month"],
+          align
+        );
+      } else if (!prevValid || year !== prevYear || month !== prevMonth) {
+        appendTimelineAxisLabel(track, x, timelineAxisMonthHtml(month), ["tick-label-month"], align);
+      } else {
+        appendTimelineAxisLabel(
+          track,
+          x,
+          '<span class="tick-day-num">' + day + "</span>",
+          ["tick-label-day"],
+          align
+        );
       }
     }
+  }
+
+  function updateTickPositions(track, metrics) {
+    renderTicks(track, metrics);
   }
 
   function clampTimelineOffset(metrics) {
@@ -1998,7 +2062,6 @@
   function renderTimeline() {
     state.timelineRenderGeneration += 1;
     els.timeline.innerHTML = "";
-    els.timeline.classList.remove("view-day", "view-week", "view-month");
     if (!state.filtered.length) {
       var emptyMessage = state.projects.length
         ? "当前筛选条件下没有作品。"
@@ -2006,8 +2069,6 @@
       els.timeline.innerHTML = '<div class="empty-state">' + emptyMessage + "</div>";
       return;
     }
-
-    els.timeline.classList.add("view-" + state.view);
 
     var metrics = timelineMetrics();
     state.cachedTimelineMetrics = metrics;
@@ -2030,7 +2091,7 @@
   function timelineTimeRange() {
     if (state.timelineTimeRangeCache) return state.timelineTimeRangeCache;
     var times = state.filtered.map(function (project) {
-      return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt).getTime();
+      return projectTimelineDate(project).getTime();
     }).filter(function (time) {
       return Number.isFinite(time) && time > 0;
     });
@@ -2125,44 +2186,6 @@
   function timeToX(time, metrics) {
     var span = metrics.max - metrics.min || 1;
     return metrics.padding + ((time - metrics.min) / span) * Math.max(1, metrics.trackWidth - metrics.padding * 2);
-  }
-
-  function renderTicks(track, metrics) {
-    var count = state.view === "day" ? 10 : state.view === "week" ? 8 : 6;
-    for (var index = 0; index <= count; index += 1) {
-      var time = metrics.min + ((metrics.max - metrics.min) / count) * index;
-      var x = timeToX(time, metrics);
-      var tick = document.createElement("div");
-      tick.className = "tick" + (index % 2 === 0 ? " major" : "");
-      tick.style.left = x + "px";
-      track.appendChild(tick);
-      if (index % 2 === 0) {
-        var label = document.createElement("div");
-        var date = new Date(time);
-        label.className = "tick-label";
-        if (index === 0) label.classList.add("tick-label-start");
-        if (index === count) label.classList.add("tick-label-end");
-        label.style.left = x + "px";
-        if (state.view === "month") {
-          label.classList.add("tick-label-month");
-          label.innerHTML =
-            '<span class="tick-month-num">' + (date.getMonth() + 1) + '</span><span class="tick-month-suffix">月</span>';
-        } else if (state.view === "day") {
-          label.classList.add("tick-label-day");
-          label.innerHTML =
-            '<span class="tick-month-num">' + String(date.getMonth() + 1).padStart(2, "0") + '</span><span class="tick-day-num">/' + String(date.getDate()).padStart(2, "0") + "</span>";
-        } else {
-          label.textContent = tickLabel(date);
-        }
-        track.appendChild(label);
-      }
-    }
-  }
-
-  function tickLabel(date) {
-    if (state.view === "month") return new Intl.DateTimeFormat("zh-CN", { year: "2-digit", month: "2-digit" }).format(date);
-    if (state.view === "week") return "W" + weekNumber(date);
-    return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(date);
   }
 
   function folderActionIcon(mode) {
@@ -2306,16 +2329,9 @@
   }
 
   function stageLabel(project) {
-    if (state.view === "month") {
-      return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long" }).format(new Date(project.lastActiveAt || project.modifiedAt));
-    }
-    if (state.view === "week") return "第 " + weekNumber(new Date(project.lastActiveAt || project.modifiedAt)) + " 周";
-    return "阶段";
-  }
-
-  function weekNumber(date) {
-    var firstDay = new Date(date.getFullYear(), 0, 1);
-    return Math.ceil(((date - firstDay) / 86400000 + firstDay.getDay() + 1) / 7);
+    return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long" }).format(
+      new Date(project.lastActiveAt || project.modifiedAt)
+    );
   }
 
   function centerActiveThumb(animated) {
@@ -2513,16 +2529,6 @@
       clearTimelineHover();
     });
 
-    Array.from(document.querySelectorAll(".segment")).forEach(function (button) {
-      button.addEventListener("click", function () {
-        document.querySelectorAll(".segment").forEach(function (item) {
-          item.classList.remove("active");
-        });
-        button.classList.add("active");
-        state.view = button.dataset.view;
-        renderTimeline();
-      });
-    });
     els.timeline.addEventListener("pointerdown", function (event) {
       if (event.button !== 0) return;
       state.dragging = false;

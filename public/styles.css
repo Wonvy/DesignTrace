@@ -1028,7 +1028,6 @@ select {
   max-width: min(100%, 520px);
 }
 
-.timeline-tools .segmented,
 .timeline-tools .play-button,
 .timeline-tools .scope-filter,
 .timeline-tools .ext-filter-trigger {
@@ -1040,7 +1039,6 @@ select {
 }
 
 @media (prefers-color-scheme: dark) {
-  .timeline-tools .segmented,
   .timeline-tools .play-button,
   .timeline-tools .scope-filter,
   .timeline-tools .ext-filter-trigger {
@@ -1165,38 +1163,6 @@ select {
   outline-offset: 1px;
 }
 
-.timeline-tools .segmented {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px;
-  gap: 2px;
-}
-
-.timeline-tools .segment {
-  width: auto;
-  min-width: 40px;
-  height: 28px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.timeline-tools .segment.active {
-  background: var(--ink);
-  color: var(--surface);
-}
-
-@media (prefers-color-scheme: dark) {
-  .timeline-tools .segment.active {
-    background: var(--surface-soft);
-    color: var(--ink);
-  }
-}
-
 .timeline-tools .play-button {
   display: inline-flex;
   align-items: center;
@@ -1217,57 +1183,6 @@ select {
   border-color: var(--accent);
   box-shadow: none;
   transform: none;
-}
-
-.timeline-tools .segment:hover {
-  border-color: transparent;
-  color: var(--ink);
-}
-
-.timeline-tools .segment.active:hover {
-  color: var(--surface);
-}
-
-@media (prefers-color-scheme: dark) {
-  .timeline-tools .segment.active:hover {
-    color: var(--ink);
-  }
-}
-
-.segmented {
-  display: flex;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(251, 250, 247, 0.56);
-}
-
-@media (prefers-color-scheme: dark) {
-  .segmented {
-    background: rgba(27, 26, 24, 0.7);
-  }
-}
-
-.segment {
-  width: 38px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  color: var(--muted);
-}
-
-.segment.active {
-  background: var(--ink);
-  color: var(--surface);
-}
-
-@media (prefers-color-scheme: dark) {
-  .segment.active {
-    background: var(--surface-soft);
-    color: var(--ink);
-  }
 }
 
 .timeline {
@@ -1488,11 +1403,37 @@ select {
 }
 
 .tick-day-num {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.tick-year-num {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.tick-year-suffix {
   font-size: 13px;
   color: var(--muted);
 }
 
-.timeline.view-month .tick-label-month .tick-month-num {
+.tick-label-year-month {
+  gap: 4px;
+}
+
+.tick-label-year-month .tick-year-num {
+  font-size: 16px;
+}
+
+.tick-label-year-month .tick-year-suffix {
+  margin-right: 2px;
+}
+
+.tick-label-month .tick-month-num {
   font-size: 24px;
 }
 
