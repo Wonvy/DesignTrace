@@ -128,8 +128,16 @@
               </svg>
             </button>
             <div class="heatmap-panel-body">
-              <div class="heatmap-heading">活动日历</div>
-              <div id="heatmap" class="heatmap" role="img" aria-label="按日统计的项目数量"></div>
+              <div class="heatmap-heading-row">
+                <div class="heatmap-heading">活动日历</div>
+                <div class="heatmap-period-bar" aria-live="polite">
+                  <span id="heatmapPeriodPrev" class="heatmap-period-side"></span>
+                  <strong id="heatmapPeriod" class="heatmap-period-current">—</strong>
+                  <span id="heatmapPeriodNext" class="heatmap-period-side"></span>
+                </div>
+              </div>
+              <p class="heatmap-wheel-hint">滚轮切换月份</p>
+              <div id="heatmap" class="heatmap" role="application" aria-label="按月浏览项目活动日历"></div>
             </div>
           </aside>
         </div>
