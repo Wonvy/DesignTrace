@@ -80,10 +80,22 @@
                 <option value="topLevel">仅顶层</option>
                 <option value="nested">仅子文件夹</option>
               </select>
-              <select id="extFilterSelect" class="scope-filter scope-filter-multi" multiple aria-label="后缀筛选，可多选" title="按住 Ctrl 可多选后缀">
-                <option value="all" selected>全部后缀</option>
-                <option value="sameAsCurrent">同当前后缀</option>
-              </select>
+              <div id="extFilter" class="ext-filter">
+                <button
+                  id="extFilterTrigger"
+                  class="ext-filter-trigger scope-filter"
+                  type="button"
+                  aria-label="后缀筛选，可多选"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="extFilterPanel"
+                >
+                  全部后缀
+                </button>
+                <div id="extFilterPanel" class="ext-filter-panel" role="listbox" aria-multiselectable="true">
+                  <div id="extFilterMenu" class="ext-filter-menu"></div>
+                </div>
+              </div>
               <select id="sizeFilterSelect" class="scope-filter" aria-label="图片大小筛选">
                 <option value="all">全部大小</option>
                 <option value="hideSmall">隐藏小图</option>
@@ -109,10 +121,17 @@
       </section>
 
       <footer class="statusbar" aria-live="polite">
-        <div id="statusPath" class="status-cell status-path">选择一个文件夹，开始留下创作轨迹。</div>
-        <div id="statusFile" class="status-cell status-file"></div>
-        <div id="statusStats" class="status-cell status-stats"></div>
-        <div id="statusDates" class="status-cell status-dates"></div>
+        <div class="statusbar-fields">
+          <div id="statusPath" class="status-cell status-path">选择一个文件夹，开始留下创作轨迹。</div>
+          <div id="statusFile" class="status-cell status-file"></div>
+          <div id="statusStats" class="status-cell status-stats"></div>
+          <div id="statusDates" class="status-cell status-dates"></div>
+        </div>
+        <div id="statusSliderCell" class="status-slider" hidden>
+          <span class="status-slider-label">缩放</span>
+          <input id="statusSlider" type="range" min="0" max="100" value="13" step="1" aria-label="时间轴缩放" disabled />
+          <span id="statusSliderValue" class="status-slider-value" aria-hidden="true">100%</span>
+        </div>
       </footer>
     </div>
 

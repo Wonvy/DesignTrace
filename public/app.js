@@ -18,6 +18,8 @@
     autoplay: null,
     autoplayEnabled: false,
     timelineHovering: false,
+    dragPointerId: null,
+    dragMoved: false,
     view: "day",
     scopeFilter: "all",
     extFilter: ["all"],
@@ -48,10 +50,16 @@
     timeline: document.getElementById("timeline"),
     autoplayButton: document.getElementById("autoplayButton"),
     scopeFilterSelect: document.getElementById("scopeFilterSelect"),
-    extFilterSelect: document.getElementById("extFilterSelect"),
+    extFilter: document.getElementById("extFilter"),
+    extFilterTrigger: document.getElementById("extFilterTrigger"),
+    extFilterPanel: document.getElementById("extFilterPanel"),
+    extFilterMenu: document.getElementById("extFilterMenu"),
     sizeFilterSelect: document.getElementById("sizeFilterSelect"),
     splitter: document.getElementById("splitter"),
     statusbar: document.querySelector(".statusbar"),
+    statusSliderCell: document.getElementById("statusSliderCell"),
+    statusSlider: document.getElementById("statusSlider"),
+    statusSliderValue: document.getElementById("statusSliderValue"),
     statusPath: document.getElementById("statusPath"),
     statusFile: document.getElementById("statusFile"),
     statusStats: document.getElementById("statusStats"),
@@ -80,7 +88,12 @@
     cardWidth: 156,
     cardGap: 24,
     minStep: 52,
-    padding: 168
+    padding: 168,
+    metaHeight: 52,
+    minThumbHeight: 36,
+    scaleMin: 0.7,
+    scaleMax: 8,
+    scaleSteps: 100
   };
   var MAX_FOLDER_DEPTH = 6;
   var IMAGE_SIZE = {
@@ -558,11 +571,76 @@
   }
 
   function getExtFilterValues() {
-    if (!els.extFilterSelect) return ["all"];
-    var values = Array.from(els.extFilterSelect.selectedOptions).map(function (option) {
-      return option.value;
+    if (!els.extFilterMenu) return state.extFilter.length ? state.extFilter.slice() : ["all"];
+    var values = Array.from(els.extFilterMenu.querySelectorAll('input[type="checkbox"]:checked')).map(function (input) {
+      return input.value;
     });
     return values.length ? values : ["all"];
+  }
+
+  function updateExtFilterTriggerLabel() {
+    if (!els.extFilterTrigger) return;
+    var values = getExtFilterValues();
+    var label = !values.length || values.indexOf("all") >= 0 ? "全部后缀" : extensionFilterLabel(values);
+    els.extFilterTrigger.textContent = label || "全部后缀";
+    els.extFilterTrigger.title = label || "全部后缀";
+  }
+
+  function setExtFilterOpen(open) {
+    if (!els.extFilter || !els.extFilterTrigger) return;
+    els.extFilter.classList.toggle("is-open", open);
+    els.extFilterTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function extFilterOptionMarkup(value, label) {
+    return [
+      '<label class="ext-filter-option" role="option">',
+      '<input type="checkbox" value="' + escapeHtml(value) + '">',
+      "<span>" + escapeHtml(label) + "</span>",
+      "</label>"
+    ].join("");
+  }
+
+  function syncExtFilterSelection() {
+    if (!els.extFilterMenu) return;
+    var selected = getExtFilterValues();
+    if (!selected.length) {
+      var allInput = els.extFilterMenu.querySelector('input[value="all"]');
+      if (allInput) allInput.checked = true;
+      selected = ["all"];
+    }
+    state.extFilter = selected;
+    updateExtFilterTriggerLabel();
+  }
+
+  function updateExtensionFilterOptions() {
+    if (!els.extFilterMenu) return;
+    var current = (state.extFilter || []).filter(function (value) {
+      return value !== "all";
+    });
+    var extensions = new Set();
+    state.projects.forEach(function (project) {
+      (project.extensions || []).forEach(function (ext) {
+        extensions.add(ext);
+      });
+    });
+    els.extFilterMenu.innerHTML = [
+      '<div class="ext-filter-special">',
+      extFilterOptionMarkup("all", "全部后缀"),
+      extFilterOptionMarkup("sameAsCurrent", "同当前后缀"),
+      "</div>",
+      '<div class="ext-filter-grid">',
+      Array.from(extensions).sort().map(function (ext) {
+        return extFilterOptionMarkup(ext, ext);
+      }).join(""),
+      "</div>"
+    ].join("");
+    var values = current.length ? current : ["all"];
+    Array.from(els.extFilterMenu.querySelectorAll('input[type="checkbox"]')).forEach(function (input) {
+      input.checked = values.indexOf(input.value) >= 0;
+    });
+    state.extFilter = getExtFilterValues();
+    updateExtFilterTriggerLabel();
   }
 
   function anchorPreviewExtension(anchor) {
@@ -588,50 +666,6 @@
       }
       return project.extensions.indexOf(ext) >= 0;
     });
-  }
-
-  function syncExtFilterSelection() {
-    if (!els.extFilterSelect) return;
-    var selected = getExtFilterValues();
-    var allOption = els.extFilterSelect.querySelector('option[value="all"]');
-    if (selected.indexOf("all") >= 0 && selected.length > 1 && allOption) {
-      allOption.selected = false;
-      selected = getExtFilterValues();
-    }
-    if (!selected.length && allOption) {
-      allOption.selected = true;
-    }
-  }
-
-  function updateExtensionFilterOptions() {
-    if (!els.extFilterSelect) return;
-    var current = getExtFilterValues().filter(function (value) {
-      return value !== "all";
-    });
-    var extensions = new Set();
-    state.projects.forEach(function (project) {
-      (project.extensions || []).forEach(function (ext) {
-        extensions.add(ext);
-      });
-    });
-    els.extFilterSelect.innerHTML = [
-      '<option value="all">全部后缀</option>',
-      '<option value="sameAsCurrent">同当前后缀</option>'
-    ].join("");
-    Array.from(extensions).sort().forEach(function (ext) {
-      var option = document.createElement("option");
-      option.value = ext;
-      option.textContent = ext;
-      els.extFilterSelect.appendChild(option);
-    });
-    if (!current.length) {
-      els.extFilterSelect.querySelector('option[value="all"]').selected = true;
-    } else {
-      Array.from(els.extFilterSelect.options).forEach(function (option) {
-        option.selected = current.indexOf(option.value) >= 0;
-      });
-    }
-    state.extFilter = getExtFilterValues();
   }
 
   function activeFilterLabels() {
@@ -684,22 +718,60 @@
   }
 
   function heroProject() {
-    var index = state.hoverIndex === null ? state.selectedIndex : state.hoverIndex;
-    return state.filtered[index] || null;
+    return state.filtered[state.selectedIndex] || null;
   }
 
-  function selectIndex(index) {
-    if (!state.filtered.length) return;
-    state.statusMessage = "";
-    state.selectedIndex = (index + state.filtered.length) % state.filtered.length;
+  function heroDisplayProject() {
+    if (state.hoverIndex !== null && state.filtered[state.hoverIndex]) {
+      return state.filtered[state.hoverIndex];
+    }
+    return heroProject();
+  }
+
+  function isHeroHoverPreview() {
+    return state.hoverIndex !== null && state.hoverIndex !== state.selectedIndex;
+  }
+
+  function setTimelineHover(index) {
+    var nextHover = index === state.selectedIndex ? null : index;
+    if (state.hoverIndex === nextHover) return;
+    state.hoverIndex = nextHover;
+    updateTimelineCardStates();
+    renderHero();
+  }
+
+  function clearTimelineHover() {
+    if (state.hoverIndex === null) return;
     state.hoverIndex = null;
-    state.previewPath = "";
-    state.previewProjectId = "";
+    updateTimelineCardStates();
+    renderHero();
+  }
+
+  function selectIndex(index, options) {
+    options = options || {};
+    if (!state.filtered.length) return;
+    var nextIndex = (index + state.filtered.length) % state.filtered.length;
+    var projectChanged = nextIndex !== state.selectedIndex;
+    state.statusMessage = "";
+    state.selectedIndex = nextIndex;
+    state.hoverIndex = null;
+    if (projectChanged) {
+      state.previewPath = "";
+      state.previewProjectId = "";
+    } else if (options.allowReselect) {
+      renderHero();
+      updateTimelineCardStates();
+      if (options.center !== false) centerActiveThumb(true);
+      return;
+    }
     if (state.filtered[state.selectedIndex]) {
       state.anchorProjectId = state.filtered[state.selectedIndex].id;
       localStorage.setItem("designtrace:selectedProjectId", state.filtered[state.selectedIndex].id);
     }
-    render();
+    renderHero();
+    updateTimelineCardStates();
+    renderControls();
+    if (options.center !== false) centerActiveThumb(true);
   }
 
   function render() {
@@ -709,9 +781,11 @@
   }
 
   function renderHero() {
-    var project = heroProject();
+    var selectedProject = heroProject();
+    var displayProject = heroDisplayProject();
+    var hoverPreview = isHeroHoverPreview();
 
-    if (!project) {
+    if (!selectedProject || !displayProject) {
       els.heroArtwork.innerHTML = "";
       els.heroThumbs.innerHTML = "";
       els.heroThumbs.hidden = true;
@@ -723,24 +797,26 @@
       return;
     }
 
-    var activeIndex = state.hoverIndex === null ? state.selectedIndex : state.hoverIndex;
-    var ordinal = activeIndex + 1 + " / " + state.filtered.length;
+    var ordinal = state.selectedIndex + 1 + " / " + state.filtered.length;
     var filterNotes = activeFilterLabels();
-    var currentFile = ensurePreview(project);
-    var thumbs = folderImages(project, currentFile);
+    var currentFile = hoverPreview ? primaryDisplayImage(displayProject) : ensurePreview(selectedProject);
+    var thumbs = hoverPreview ? [] : folderImages(selectedProject, currentFile);
 
-    els.heroArtwork.innerHTML = artworkMarkup(project, currentFile);
-    renderHeroThumbs(project, thumbs, currentFile);
+    els.heroArtwork.innerHTML = artworkMarkup(displayProject, currentFile);
+    renderHeroThumbs(selectedProject, thumbs, currentFile);
     els.slideshowStage.classList.toggle("has-thumbs", thumbs.length > 1);
-    els.slideshowStage.classList.toggle("is-preview", state.hoverIndex !== null && state.hoverIndex !== state.selectedIndex);
+    els.slideshowStage.classList.toggle("is-preview", hoverPreview);
     els.heroKicker.textContent = [
-      project.projectType,
+      displayProject.projectType,
       ordinal,
       filterNotes.join(" · "),
+      hoverPreview ? "预览" : "",
       state.projects.length !== state.filtered.length ? "共 " + state.projects.length + " 件" : ""
     ].filter(Boolean).join(" · ");
-    els.heroTitle.textContent = project.displayName || project.name;
-    els.heroMeta.textContent = formatDate(project.lastActiveAt) + " · " + formatBytes(project.sizeBytes) + " · " + project.fileCount + " 个文件";
+    els.heroTitle.textContent = displayProject.displayName || displayProject.name;
+    els.heroMeta.textContent = formatDate(displayProject.lastActiveAt)
+      + " · " + formatBytes(displayProject.sizeBytes)
+      + " · " + displayProject.fileCount + " 个文件";
     renderStatusBar();
   }
 
@@ -815,6 +891,27 @@
     }
   }
 
+  function stepHeroThumb(direction) {
+    var project = heroProject();
+    if (!project) return false;
+    var currentFile = ensurePreview(project);
+    var thumbs = folderImages(project, currentFile);
+    if (thumbs.length <= 1) return false;
+    var currentIndex = 0;
+    for (var i = 0; i < thumbs.length; i++) {
+      if (currentFile && thumbs[i].path === currentFile.path) {
+        currentIndex = i;
+        break;
+      }
+    }
+    var nextIndex = (currentIndex + direction + thumbs.length) % thumbs.length;
+    if (nextIndex === currentIndex) return false;
+    state.previewPath = thumbs[nextIndex].path;
+    state.previewProjectId = project.id;
+    renderHero();
+    return true;
+  }
+
   function artworkMarkup(project, currentFile) {
     if (!project) return "";
     var preview = currentFile || previewFile(project);
@@ -830,8 +927,52 @@
     return '<div class="art-generated">' + heading + "<p>" + escapeHtml(subtitle) + "</p></div>";
   }
 
+  function timelineScaleFromSlider(value) {
+    var ratio = value / TIMELINE.scaleSteps;
+    return TIMELINE.scaleMin * Math.pow(TIMELINE.scaleMax / TIMELINE.scaleMin, ratio);
+  }
+
+  function sliderFromTimelineScale(scale) {
+    var clamped = Math.min(TIMELINE.scaleMax, Math.max(TIMELINE.scaleMin, scale));
+    var ratio = Math.log(clamped / TIMELINE.scaleMin) / Math.log(TIMELINE.scaleMax / TIMELINE.scaleMin);
+    return Math.round(ratio * TIMELINE.scaleSteps);
+  }
+
+  function timelineScaleLabel(scale) {
+    return Math.round(scale * 100) + "%";
+  }
+
+  function setTimelineScale(nextScale, anchorX) {
+    var previous = state.timelineScale;
+    state.timelineScale = Math.min(TIMELINE.scaleMax, Math.max(TIMELINE.scaleMin, nextScale));
+    if (previous === state.timelineScale && anchorX == null) {
+      updateStatusSlider();
+      return;
+    }
+    var rect = els.timeline.getBoundingClientRect();
+    var pointerX = anchorX != null ? anchorX : rect.width / 2;
+    state.timelineOffset = pointerX - ((pointerX - state.timelineOffset) / previous) * state.timelineScale;
+    renderTimeline();
+  }
+
+  function updateStatusSlider() {
+    if (!els.statusSlider) return;
+    var total = state.filtered.length;
+    if (els.statusSliderCell) els.statusSliderCell.hidden = total === 0;
+    els.statusSlider.disabled = total === 0;
+    els.statusSlider.min = "0";
+    els.statusSlider.max = String(TIMELINE.scaleSteps);
+    var sliderValue = sliderFromTimelineScale(state.timelineScale);
+    els.statusSlider.value = String(sliderValue);
+    els.statusSlider.style.setProperty("--slider-progress", (sliderValue / TIMELINE.scaleSteps * 100) + "%");
+    if (els.statusSliderValue) {
+      els.statusSliderValue.textContent = timelineScaleLabel(state.timelineScale);
+    }
+  }
+
   function renderStatusBar() {
     if (!els.statusPath || !els.statusFile || !els.statusStats || !els.statusDates) return;
+    updateStatusSlider();
 
     els.statusFile.textContent = "";
     els.statusStats.textContent = "";
@@ -844,6 +985,7 @@
         || (state.rootName
           ? state.rootName + " · " + state.projects.length + " 件作品"
           : "选择一个文件夹，开始留下创作轨迹。");
+      if (els.statusbar) els.statusbar.classList.toggle("is-status-notice", !!state.statusMessage);
       if (!state.statusMessage && state.rootName) {
         els.statusStats.textContent = "本地读取，未上传。";
       }
@@ -851,7 +993,13 @@
     }
 
     var preview = previewFile(project);
-    els.statusPath.textContent = project.path;
+    if (state.statusMessage) {
+      els.statusPath.textContent = state.statusMessage;
+      if (els.statusbar) els.statusbar.classList.add("is-status-notice");
+    } else {
+      els.statusPath.textContent = project.path;
+      if (els.statusbar) els.statusbar.classList.remove("is-status-notice");
+    }
     els.statusFile.textContent = preview
       ? preview.name + " · " + formatBytes(preview.sizeBytes)
       : "";
@@ -867,7 +1015,7 @@
       "创建 " + formatDate(project.createdAt, true)
     ].join(" · ");
     if (els.statusbar) {
-      els.statusbar.classList.toggle("is-preview", state.hoverIndex !== null && state.hoverIndex !== state.selectedIndex);
+      els.statusbar.classList.remove("is-preview");
     }
   }
 
@@ -885,10 +1033,11 @@
     els.timeline.classList.add("view-" + state.view);
 
     var metrics = timelineMetrics();
+    state.cachedTimelineMetrics = metrics;
     var track = document.createElement("div");
-    track.className = "timeline-track" + (metrics.layered ? " is-layered" : "");
+    track.className = "timeline-track";
     track.style.width = metrics.trackWidth + "px";
-    track.style.transform = "translateX(" + state.timelineOffset + "px)";
+    applyTrackOffset(false);
 
     var axis = document.createElement("div");
     axis.className = "timeline-axis";
@@ -903,27 +1052,28 @@
       card.className = "timeline-card"
         + (isActive ? " active" : "")
         + (isPreview ? " is-preview" : "")
-        + (metrics.layered ? " is-layered" : "");
+        + (metrics.narrow ? " is-narrow" : "");
       card.setAttribute("role", "button");
       card.setAttribute("tabindex", "0");
       card.style.left = left + "px";
+      card.style.setProperty("--card-width", metrics.actualCardWidth + "px");
+      card.style.setProperty("--card-height", metrics.cardHeight + "px");
+      card.style.setProperty("--thumb-height", metrics.thumbHeight + "px");
       card.style.zIndex = String(isPreview ? 200 : isActive ? 160 : index + 1);
-      if (metrics.layered) {
-        card.style.setProperty("--layer-depth", String(Math.min(index, 6)));
-      }
-      card.style.animationDelay = Math.min(index * 32, 360) + "ms";
       card.innerHTML = timelineCardMarkup(project);
+      card.addEventListener("pointerdown", function (event) {
+        if (event.target.closest(".timeline-folder-action")) return;
+        event.stopPropagation();
+      });
       card.addEventListener("click", function (event) {
         if (event.target.closest(".timeline-folder-action")) return;
-        selectIndex(index);
-        centerActiveThumb(true);
+        selectIndex(index, { allowReselect: true });
       });
       card.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
           if (event.target.closest(".timeline-folder-action")) return;
           event.preventDefault();
-          selectIndex(index);
-          centerActiveThumb(true);
+          selectIndex(index, { allowReselect: true });
         }
       });
       var folderAction = card.querySelector(".timeline-folder-action");
@@ -935,15 +1085,15 @@
         });
       }
       card.addEventListener("mouseenter", function () {
-        state.hoverIndex = index;
-        updateTimelineCardStates();
-        renderHero();
+        setTimelineHover(index);
       });
-      card.addEventListener("mouseleave", function () {
+      card.addEventListener("mouseleave", function (event) {
         if (state.hoverIndex !== index) return;
-        state.hoverIndex = null;
-        updateTimelineCardStates();
-        renderHero();
+        var nextCard = event.relatedTarget && event.relatedTarget.closest
+          ? event.relatedTarget.closest(".timeline-card")
+          : null;
+        if (nextCard && nextCard !== card) return;
+        clearTimelineHover();
       });
       track.appendChild(card);
     });
@@ -951,6 +1101,7 @@
     els.timeline.appendChild(track);
     updateTimelineCardStates();
     centerActiveThumb(false);
+    updateStatusSlider();
   }
 
   function timelineTimeRange() {
@@ -968,6 +1119,22 @@
     return { min: min, max: max };
   }
 
+  function timelineCardDimensions(metrics) {
+    var actualCardWidth = Math.min(TIMELINE.cardWidth, metrics.step);
+    actualCardWidth = Math.max(TIMELINE.minStep, actualCardWidth);
+    var narrow = metrics.step < TIMELINE.cardWidth;
+    var thumbHeight = narrow
+      ? Math.max(TIMELINE.minThumbHeight, Math.round(88 * actualCardWidth / TIMELINE.cardWidth))
+      : 88;
+    var metaHeight = narrow ? Math.max(36, Math.round(TIMELINE.metaHeight * actualCardWidth / TIMELINE.cardWidth)) : TIMELINE.metaHeight;
+    return {
+      actualCardWidth: actualCardWidth,
+      thumbHeight: thumbHeight,
+      cardHeight: thumbHeight + metaHeight,
+      narrow: narrow
+    };
+  }
+
   function timelineLayout() {
     var count = state.filtered.length;
     var fullStep = TIMELINE.cardWidth + TIMELINE.cardGap;
@@ -980,16 +1147,15 @@
 
     step = Math.min(fullStep, Math.max(TIMELINE.minStep, step));
 
-    var actualWidth = TIMELINE.padding * 2 + TIMELINE.cardWidth + Math.max(0, count - 1) * step;
-    var layered = step < TIMELINE.cardWidth;
+    var dimensions = timelineCardDimensions({ step: step });
+    var actualWidth = TIMELINE.padding * 2 + dimensions.actualCardWidth + Math.max(0, count - 1) * step;
 
-    return {
+    return Object.assign({
       trackWidth: actualWidth,
       step: step,
-      layered: layered,
       padding: TIMELINE.padding,
       cardWidth: TIMELINE.cardWidth
-    };
+    }, dimensions);
   }
 
   function timelineMetrics() {
@@ -1001,7 +1167,7 @@
   }
 
   function cardCenter(index, metrics) {
-    return cardLeft(index, metrics) + metrics.cardWidth / 2;
+    return cardLeft(index, metrics) + metrics.actualCardWidth / 2;
   }
 
   function timeToX(time, metrics) {
@@ -1140,7 +1306,7 @@
       actionButton.title = "复制文件夹路径";
       actionButton.setAttribute("aria-label", "复制文件夹路径");
     }
-    showFolderActionStatus(copied ? "已复制文件夹路径" : "复制路径失败");
+    showFolderActionStatus(copied ? "复制成功" : "复制路径失败");
   }
 
   function timelineCardMarkup(project) {
@@ -1182,12 +1348,17 @@
     var metrics = timelineMetrics();
     var x = cardCenter(state.selectedIndex, metrics);
     state.timelineOffset = els.timeline.clientWidth / 2 - x;
+    applyTrackOffset(animated !== false);
+  }
+
+  function applyTrackOffset(animated) {
     var track = els.timeline.querySelector(".timeline-track");
-    if (track) {
-      if (!animated) track.style.transition = "none";
-      track.style.transform = "translateX(" + state.timelineOffset + "px)";
-      if (!animated) requestAnimationFrame(function () {
-        track.style.transition = "";
+    if (!track) return;
+    track.classList.toggle("is-dragging", state.dragging || animated === false);
+    track.style.transform = "translateX(" + state.timelineOffset + "px)";
+    if (animated === false) {
+      requestAnimationFrame(function () {
+        if (!state.dragging) track.classList.remove("is-dragging");
       });
     }
   }
@@ -1234,8 +1405,7 @@
     setPlayButton(true);
     state.autoplay = setInterval(function () {
       if (state.timelineHovering || state.hoverIndex !== null) return;
-      selectIndex(state.selectedIndex + 1);
-      centerActiveThumb(true);
+      selectIndex(state.selectedIndex + 1, { center: true });
     }, 2400);
   }
 
@@ -1246,48 +1416,93 @@
     els.autoplayButton.setAttribute("aria-label", playing ? "暂停时间轴" : "播放时间轴");
   }
   function bindEvents() {
+    window.addEventListener(
+      "wheel",
+      function (event) {
+        if (event.ctrlKey || event.metaKey) event.preventDefault();
+      },
+      { passive: false }
+    );
+
     els.pickDirectoryButton.addEventListener("click", pickDirectory);
     els.rescanButton.addEventListener("click", rescan);
     els.themeButton.addEventListener("click", toggleTheme);
     els.searchInput.addEventListener("input", applyFilters);
     els.sortSelect.addEventListener("change", applyFilters);
     if (els.scopeFilterSelect) els.scopeFilterSelect.addEventListener("change", applyFilters);
-    if (els.extFilterSelect) {
-      els.extFilterSelect.addEventListener("change", function () {
+    if (els.extFilterTrigger) {
+      els.extFilterTrigger.addEventListener("click", function (event) {
+        event.stopPropagation();
+        setExtFilterOpen(!els.extFilter.classList.contains("is-open"));
+      });
+    }
+    if (els.extFilterMenu) {
+      els.extFilterMenu.addEventListener("change", function (event) {
+        if (event.target.type !== "checkbox") return;
+        if (event.target.value === "all" && event.target.checked) {
+          Array.from(els.extFilterMenu.querySelectorAll('input[type="checkbox"]')).forEach(function (input) {
+            if (input.value !== "all") input.checked = false;
+          });
+        } else if (event.target.checked) {
+          var allInput = els.extFilterMenu.querySelector('input[value="all"]');
+          if (allInput) allInput.checked = false;
+        }
         syncExtFilterSelection();
         applyFilters();
       });
     }
+    document.addEventListener("click", function (event) {
+      if (els.extFilter && !els.extFilter.contains(event.target)) setExtFilterOpen(false);
+    });
     if (els.sizeFilterSelect) els.sizeFilterSelect.addEventListener("change", applyFilters);
     els.prevButton.addEventListener("click", function () {
       selectIndex(state.selectedIndex - 1);
-      centerActiveThumb(true);
     });
     els.nextButton.addEventListener("click", function () {
       selectIndex(state.selectedIndex + 1);
-      centerActiveThumb(true);
     });
+    if (els.statusSlider) {
+      els.statusSlider.addEventListener("input", function () {
+        if (!state.filtered.length || els.statusSlider.disabled) return;
+        setTimelineScale(timelineScaleFromSlider(parseInt(els.statusSlider.value, 10)));
+      });
+    }
     var heroWheelLock = false;
     document.querySelector(".showcase").addEventListener("wheel", function (event) {
       if (!state.filtered.length || heroWheelLock) return;
+      if (event.target.closest && event.target.closest("#heroThumbs")) return;
       event.preventDefault();
       heroWheelLock = true;
       selectIndex(state.selectedIndex + (event.deltaY > 0 || event.deltaX > 0 ? 1 : -1));
-      centerActiveThumb(true);
       setTimeout(function () {
         heroWheelLock = false;
       }, 260);
     });
+    var heroThumbWheelLock = false;
+    els.heroThumbs.addEventListener(
+      "wheel",
+      function (event) {
+        if (!state.filtered.length || heroThumbWheelLock) return;
+        var direction = event.deltaY > 0 || event.deltaX > 0 ? 1 : -1;
+        event.preventDefault();
+        event.stopPropagation();
+        heroThumbWheelLock = true;
+        if (!stepHeroThumb(direction)) heroThumbWheelLock = false;
+        else {
+          setTimeout(function () {
+            heroThumbWheelLock = false;
+          }, 260);
+        }
+      },
+      { passive: false }
+    );
     els.autoplayButton.addEventListener("click", toggleAutoplay);
     els.timeline.addEventListener("mouseenter", function () {
       state.timelineHovering = true;
     });
     els.timeline.addEventListener("mouseleave", function () {
       state.timelineHovering = false;
-      if (state.hoverIndex === null) return;
-      state.hoverIndex = null;
-      updateTimelineCardStates();
-      renderHero();
+      clearTimelineHover();
     });
 
     Array.from(document.querySelectorAll(".segment")).forEach(function (button) {
@@ -1302,36 +1517,58 @@
     });
 
     els.timeline.addEventListener("pointerdown", function (event) {
-      state.dragging = true;
+      if (event.button !== 0) return;
+      state.dragging = false;
+      state.dragMoved = false;
+      state.dragPointerId = event.pointerId;
       state.dragStartX = event.clientX;
       state.dragStartOffset = state.timelineOffset;
-      els.timeline.classList.add("dragging");
-      els.timeline.setPointerCapture(event.pointerId);
     });
     els.timeline.addEventListener("pointermove", function (event) {
+      if (event.pointerId !== state.dragPointerId) return;
+      if (!state.dragMoved && Math.abs(event.clientX - state.dragStartX) > 5) {
+        state.dragMoved = true;
+        state.dragging = true;
+        els.timeline.classList.add("dragging");
+        applyTrackOffset(false);
+        els.timeline.setPointerCapture(event.pointerId);
+      }
       if (!state.dragging) return;
       state.timelineOffset = state.dragStartOffset + event.clientX - state.dragStartX;
-      moveTrack();
+      applyTrackOffset(false);
     });
     els.timeline.addEventListener("pointerup", function (event) {
+      if (event.pointerId !== state.dragPointerId) return;
+      if (state.dragging) {
+        els.timeline.classList.remove("dragging");
+        if (els.timeline.hasPointerCapture(event.pointerId)) {
+          els.timeline.releasePointerCapture(event.pointerId);
+        }
+      }
       state.dragging = false;
+      state.dragMoved = false;
+      state.dragPointerId = null;
+      applyTrackOffset(true);
+    });
+    els.timeline.addEventListener("pointercancel", function (event) {
+      if (event.pointerId !== state.dragPointerId) return;
+      state.dragging = false;
+      state.dragMoved = false;
+      state.dragPointerId = null;
       els.timeline.classList.remove("dragging");
-      els.timeline.releasePointerCapture(event.pointerId);
     });
     els.timeline.addEventListener("wheel", function (event) {
       event.preventDefault();
       if (event.ctrlKey || event.metaKey) {
-        var previous = state.timelineScale;
-        state.timelineScale = Math.min(8, Math.max(0.7, state.timelineScale * (event.deltaY > 0 ? 0.9 : 1.12)));
         var rect = els.timeline.getBoundingClientRect();
         var pointerX = event.clientX - rect.left;
-        state.timelineOffset = pointerX - ((pointerX - state.timelineOffset) / previous) * state.timelineScale;
-        renderTimeline();
+        var factor = event.deltaY > 0 ? 0.9 : 1.12;
+        setTimelineScale(state.timelineScale * factor, pointerX);
         return;
       }
 
       state.timelineOffset -= Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-      moveTrack();
+      applyTrackOffset(false);
     });
 
     els.splitter.addEventListener("pointerdown", function (event) {
@@ -1343,6 +1580,7 @@
       var nextHeight = Math.max(180, Math.min(window.innerHeight - 290, window.innerHeight - event.clientY));
       document.documentElement.style.setProperty("--timeline-height", nextHeight + "px");
       centerActiveThumb(false);
+      renderTimeline();
     });
     els.splitter.addEventListener("pointerup", function (event) {
       state.splitterDragging = false;
@@ -1350,6 +1588,7 @@
     });
 
     window.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") setExtFilterOpen(false);
       if (event.key === "ArrowLeft") selectIndex(state.selectedIndex - 1);
       if (event.key === "ArrowRight") selectIndex(state.selectedIndex + 1);
     });
@@ -1359,8 +1598,7 @@
   }
 
   function moveTrack() {
-    var track = els.timeline.querySelector(".timeline-track");
-    if (track) track.style.transform = "translateX(" + state.timelineOffset + "px)";
+    applyTrackOffset(!state.dragging);
   }
 
   async function restorePreviousDirectory() {
@@ -1380,6 +1618,7 @@
 
   applyTheme(localStorage.getItem("designtrace:theme"));
   updateFolderTooltip();
+  updateExtensionFilterOptions();
   bindEvents();
   render();
   restorePreviousDirectory();
