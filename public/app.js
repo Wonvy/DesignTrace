@@ -44,6 +44,7 @@
     heatmapViewMonth: null,
     timelinePeriodSyncLock: false,
     scanning: false,
+    slideshowFullscreen: false,
     collapsedHeroFileGroups: new Set()
   };
 
@@ -64,6 +65,10 @@
   var HEATMAP_WHEEL_COOLDOWN = 120;
   var scanUiLastAt = 0;
   var heatmapWheelLock = false;
+  var heroImageLoadWaiters = [];
+  var heroArtworkLoadingGen = null;
+  var AUTOPLAY_INTERVAL = 2400;
+  var AUTOPLAY_HOVER_RETRY = 400;
 
   var els = {
     pickDirectoryButton: document.getElementById("pickDirectoryButton"),
@@ -91,6 +96,7 @@
     heatmap: document.getElementById("heatmap"),
     heatmapTooltip: document.getElementById("heatmapTooltip"),
     autoplayButton: document.getElementById("autoplayButton"),
+    slideshowFullscreenButton: document.getElementById("slideshowFullscreenButton"),
     scopeFilterSelect: document.getElementById("scopeFilterSelect"),
     extFilter: document.getElementById("extFilter"),
     extFilterTrigger: document.getElementById("extFilterTrigger"),
@@ -105,7 +111,8 @@
     statusPath: document.getElementById("statusPath"),
     statusFile: document.getElementById("statusFile"),
     statusStats: document.getElementById("statusStats"),
-    statusDates: document.getElementById("statusDates")
+    statusDates: document.getElementById("statusDates"),
+    appShell: document.querySelector(".app-shell")
   };
 
   var IGNORE_NAMES = new Set([".git", "node_modules", "dist", "build", ".next", ".nuxt", ".cache", "coverage", "target", "vendor", "venv", ".venv", "__pycache__"]);
@@ -488,6 +495,8 @@
 
   function invalidateHeroImageLoad() {
     heroRenderGeneration += 1;
+    heroArtworkLoadingGen = null;
+    resolveHeroImageLoadWaiters();
   }
 
   function objectUrl(file, cacheKey) {
@@ -894,17 +903,19 @@
     return 0;
   }
 
-  function displayableImages(project) {
+  function filteredImageFiles(project) {
     if (!project || !project.imageFiles.length) return [];
     var min = sizeFilterMinBytes(state.sizeFilter);
-    var images = project.imageFiles.filter(function (file) {
+    return project.imageFiles.filter(function (file) {
       return !min || file.sizeBytes >= min;
     });
-    var sorted = images.slice().sort(function (a, b) {
+  }
+
+  function displayableImages(project) {
+    return filteredImageFiles(project).slice().sort(function (a, b) {
       if (b.sizeBytes !== a.sizeBytes) return b.sizeBytes - a.sizeBytes;
       return new Date(b.modifiedAt) - new Date(a.modifiedAt);
     });
-    return sorted;
   }
 
   function primaryDisplayImage(project) {
@@ -913,7 +924,9 @@
   }
 
   function timelineDisplayImages(project) {
-    return displayableImages(project).slice(0, TIMELINE_THUMB_MAX_IMAGES);
+    return filteredImageFiles(project).slice().sort(function (a, b) {
+      return new Date(b.modifiedAt || 0) - new Date(a.modifiedAt || 0);
+    }).slice(0, TIMELINE_THUMB_MAX_IMAGES);
   }
 
   function timelineThumbImageMarkup(file, lazyThumb) {
@@ -1295,21 +1308,29 @@
   function loadHeroArtwork(displayProject, currentFile, hoverPreview) {
     var preview = currentFile || previewFile(displayProject);
     var gen = ++heroRenderGeneration;
+    var silentLoad = state.slideshowFullscreen && !hoverPreview;
+    heroArtworkLoadingGen = gen;
 
     if (!preview) {
       els.heroArtwork.classList.remove("is-loading");
       els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, displayProject.path);
+      heroArtworkLoadingGen = null;
+      resolveHeroImageLoadWaiters();
       return;
     }
 
     if (!IMAGE_EXTENSIONS.has(preview.extension)) {
       els.heroArtwork.classList.remove("is-loading");
       els.heroArtwork.innerHTML = emptyArtwork(preview.name, preview.extension || preview.path);
+      heroArtworkLoadingGen = null;
+      resolveHeroImageLoadWaiters();
       return;
     }
 
-    els.heroArtwork.classList.add("is-loading");
-    els.heroArtwork.innerHTML = '<span class="hero-spinner" aria-hidden="true"></span>';
+    if (!silentLoad) {
+      els.heroArtwork.classList.add("is-loading");
+      els.heroArtwork.innerHTML = '<span class="hero-spinner" aria-hidden="true"></span>';
+    }
 
     heroImageUrl(preview.file, preview.path, hoverPreview).then(function (url) {
       if (gen !== heroRenderGeneration) return;
@@ -1320,22 +1341,41 @@
       img.className = "art-image";
       img.alt = preview.name;
       img.decoding = "async";
+
       var settle = function () {
         if (gen !== heroRenderGeneration) return;
-        if (!img.isConnected) return;
+        heroArtworkLoadingGen = null;
         els.heroArtwork.classList.remove("is-loading");
+        if (silentLoad) {
+          els.heroArtwork.innerHTML = "";
+          els.heroArtwork.appendChild(img);
+        } else if (!img.isConnected) {
+          els.heroArtwork.innerHTML = "";
+          els.heroArtwork.appendChild(img);
+        }
         captureHeroImageDimensions(preview, gen);
+        resolveHeroImageLoadWaiters();
       };
+
       img.addEventListener("load", settle, { once: true });
       img.addEventListener("error", settle, { once: true });
+
+      if (silentLoad) {
+        img.src = url;
+        if (img.complete) settle();
+        return;
+      }
+
       els.heroArtwork.innerHTML = "";
       els.heroArtwork.appendChild(img);
       img.src = url;
       if (img.complete) settle();
     }).catch(function () {
       if (gen !== heroRenderGeneration) return;
+      heroArtworkLoadingGen = null;
       els.heroArtwork.classList.remove("is-loading");
       els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, displayProject.path);
+      resolveHeroImageLoadWaiters();
     });
 
     if (!hoverPreview) {
@@ -2909,6 +2949,49 @@
     els.prevButton.disabled = state.filtered.length < 2;
     els.nextButton.disabled = state.filtered.length < 2;
     els.rescanButton.disabled = !state.files && !state.rootHandle;
+    if (state.slideshowFullscreen && !state.filtered.length) exitSlideshowFullscreen();
+    if (els.slideshowFullscreenButton) {
+      els.slideshowFullscreenButton.disabled = !state.filtered.length || state.scanning;
+    }
+  }
+
+  function updateSlideshowFullscreenButton() {
+    if (!els.slideshowFullscreenButton) return;
+    var active = state.slideshowFullscreen;
+    els.slideshowFullscreenButton.classList.toggle("is-active", active);
+    els.slideshowFullscreenButton.setAttribute("aria-label", active ? "退出幻灯片全屏" : "幻灯片全屏");
+    els.slideshowFullscreenButton.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+
+  function enterSlideshowFullscreen() {
+    if (!state.filtered.length || state.scanning || state.slideshowFullscreen) return;
+    state.slideshowFullscreen = true;
+    if (els.appShell) els.appShell.classList.add("is-slideshow-fullscreen");
+    document.documentElement.classList.add("is-slideshow-fullscreen");
+    updateSlideshowFullscreenButton();
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    }
+    if (!state.autoplayEnabled) state.autoplayEnabled = true;
+    ensureAutoplay();
+  }
+
+  function exitSlideshowFullscreen(options) {
+    options = options || {};
+    if (!state.slideshowFullscreen) return;
+    state.slideshowFullscreen = false;
+    if (els.appShell) els.appShell.classList.remove("is-slideshow-fullscreen");
+    document.documentElement.classList.remove("is-slideshow-fullscreen");
+    updateSlideshowFullscreenButton();
+    if (!options.skipNativeExit && document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+    if (state.autoplayEnabled) ensureAutoplay();
+  }
+
+  function toggleSlideshowFullscreen() {
+    if (state.slideshowFullscreen) exitSlideshowFullscreen();
+    else enterSlideshowFullscreen();
   }
 
   function setStatus(message) {
@@ -2930,7 +3013,9 @@
 
   function setScanning(active, message) {
     if (!els.scanOverlay) return;
+    if (active && state.slideshowFullscreen) exitSlideshowFullscreen();
     state.scanning = !!active;
+    if (els.appShell) els.appShell.classList.toggle("is-scanning", state.scanning);
     if (active) {
       setScanProgress(message);
       updateShowcaseLayout(false);
@@ -2939,6 +3024,49 @@
     }
     els.scanOverlay.classList.remove("active");
     scanUiLastAt = 0;
+  }
+
+  function resolveHeroImageLoadWaiters() {
+    if (!heroImageLoadWaiters.length) return;
+    var waiters = heroImageLoadWaiters.slice();
+    heroImageLoadWaiters = [];
+    waiters.forEach(function (waiter) {
+      waiter();
+    });
+  }
+
+  function waitForHeroImageSettled() {
+    return new Promise(function (resolve) {
+      if (!heroArtworkLoadingGen) {
+        resolve();
+        return;
+      }
+      var timeout = setTimeout(function () {
+        heroArtworkLoadingGen = null;
+        resolve();
+      }, 12000);
+      heroImageLoadWaiters.push(function () {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+  }
+
+  function scheduleFullscreenAutoplayStep(displayDelay) {
+    if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+    state.autoplay = setTimeout(function () {
+      state.autoplay = null;
+      if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+      if (state.timelineHovering || state.hoverIndex !== null) {
+        scheduleFullscreenAutoplayStep(AUTOPLAY_HOVER_RETRY);
+        return;
+      }
+      selectIndex(state.selectedIndex + 1, { center: true });
+      waitForHeroImageSettled().then(function () {
+        if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+        scheduleFullscreenAutoplayStep(AUTOPLAY_INTERVAL);
+      });
+    }, displayDelay);
   }
 
   function toggleAutoplay() {
@@ -2954,6 +3082,7 @@
   function stopAutoplay() {
     if (!state.autoplay) return;
     clearInterval(state.autoplay);
+    clearTimeout(state.autoplay);
     state.autoplay = null;
   }
 
@@ -2964,10 +3093,17 @@
       return;
     }
     setPlayButton(true);
+    if (state.slideshowFullscreen) {
+      waitForHeroImageSettled().then(function () {
+        if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+        scheduleFullscreenAutoplayStep(AUTOPLAY_INTERVAL);
+      });
+      return;
+    }
     state.autoplay = setInterval(function () {
       if (state.timelineHovering || state.hoverIndex !== null) return;
       selectIndex(state.selectedIndex + 1, { center: true });
-    }, 2400);
+    }, AUTOPLAY_INTERVAL);
   }
 
   function setPlayButton(playing) {
@@ -3085,6 +3221,22 @@
       { passive: false }
     );
     els.autoplayButton.addEventListener("click", toggleAutoplay);
+    if (els.slideshowFullscreenButton) {
+      els.slideshowFullscreenButton.addEventListener("click", toggleSlideshowFullscreen);
+    }
+    document.addEventListener("fullscreenchange", function () {
+      if (!document.fullscreenElement && state.slideshowFullscreen) {
+        exitSlideshowFullscreen({ skipNativeExit: true });
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      if (!state.slideshowFullscreen || event.code !== "Space") return;
+      if (event.target && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA" || event.target.isContentEditable)) {
+        return;
+      }
+      event.preventDefault();
+      exitSlideshowFullscreen();
+    });
     els.timeline.addEventListener("mouseenter", function () {
       state.timelineHovering = true;
     });

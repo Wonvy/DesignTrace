@@ -14,6 +14,11 @@
   --tick-active-muted: color-mix(in srgb, var(--accent) 72%, var(--muted));
   --control-bg: color-mix(in srgb, var(--surface-raised) 92%, var(--surface));
   --panel-bg: color-mix(in srgb, var(--surface) 88%, var(--bg));
+  --chrome-bg: color-mix(in srgb, var(--surface) 72%, transparent);
+  --soft-fill: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+  --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 65%, transparent);
+  --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 70%, transparent);
+  --overlay-fill: color-mix(in srgb, var(--muted) 10%, transparent);
   --shadow: 0 24px 64px rgba(24, 20, 16, 0.11);
   --shadow-soft: 0 12px 34px rgba(24, 20, 16, 0.08);
   --shadow-popover: 0 16px 42px rgba(24, 20, 16, 0.14);
@@ -25,6 +30,7 @@
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.42);
   --tick-active-shadow: drop-shadow(0 1px 2px rgba(29, 107, 97, 0.14));
   --heatmap-level-empty: color-mix(in srgb, var(--muted) 12%, transparent);
+  --scan-dim: rgba(8, 7, 6, 0.68);
   --timeline-height: 348px;
   --timeline-padding: 168px;
   --statusbar-height: 32px;
@@ -48,8 +54,13 @@
     --on-accent: #10100f;
     --tick-active: #f2eee7;
     --tick-active-muted: rgba(242, 238, 231, 0.88);
-    --control-bg: color-mix(in srgb, var(--surface-raised) 90%, var(--surface));
-    --panel-bg: color-mix(in srgb, var(--surface) 88%, var(--bg));
+    --control-bg: color-mix(in srgb, var(--surface-raised) 98%, var(--surface));
+    --panel-bg: color-mix(in srgb, var(--surface) 96%, var(--bg));
+    --chrome-bg: color-mix(in srgb, var(--surface) 94%, var(--bg));
+    --soft-fill: color-mix(in srgb, var(--surface-soft) 82%, var(--surface));
+    --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 90%, var(--surface));
+    --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 94%, var(--surface));
+    --overlay-fill: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
     --shadow: 0 34px 90px rgba(0, 0, 0, 0.4);
     --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.28);
     --shadow-popover: 0 16px 42px rgba(0, 0, 0, 0.32);
@@ -60,7 +71,8 @@
     --slider-thumb-shadow-hover: 0 2px 8px rgba(123, 199, 184, 0.32);
     --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
     --tick-active-shadow: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28));
-    --heatmap-level-empty: color-mix(in srgb, var(--muted) 10%, transparent);
+    --heatmap-level-empty: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
+    --scan-dim: rgba(0, 0, 0, 0.84);
     color-scheme: dark;
   }
 }
@@ -81,6 +93,11 @@
   --tick-active-muted: color-mix(in srgb, var(--accent) 72%, var(--muted));
   --control-bg: color-mix(in srgb, var(--surface-raised) 92%, var(--surface));
   --panel-bg: color-mix(in srgb, var(--surface) 88%, var(--bg));
+  --chrome-bg: color-mix(in srgb, var(--surface) 72%, transparent);
+  --soft-fill: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+  --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 65%, transparent);
+  --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 70%, transparent);
+  --overlay-fill: color-mix(in srgb, var(--muted) 10%, transparent);
   --shadow: 0 24px 64px rgba(24, 20, 16, 0.11);
   --shadow-soft: 0 12px 34px rgba(24, 20, 16, 0.08);
   --shadow-popover: 0 16px 42px rgba(24, 20, 16, 0.14);
@@ -92,6 +109,7 @@
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.42);
   --tick-active-shadow: drop-shadow(0 1px 2px rgba(29, 107, 97, 0.14));
   --heatmap-level-empty: color-mix(in srgb, var(--muted) 12%, transparent);
+  --scan-dim: rgba(8, 7, 6, 0.68);
   color-scheme: light;
 }
 
@@ -109,8 +127,13 @@
   --on-accent: #10100f;
   --tick-active: #f2eee7;
   --tick-active-muted: rgba(242, 238, 231, 0.88);
-  --control-bg: color-mix(in srgb, var(--surface-raised) 90%, var(--surface));
-  --panel-bg: color-mix(in srgb, var(--surface) 88%, var(--bg));
+  --control-bg: color-mix(in srgb, var(--surface-raised) 98%, var(--surface));
+  --panel-bg: color-mix(in srgb, var(--surface) 96%, var(--bg));
+  --chrome-bg: color-mix(in srgb, var(--surface) 94%, var(--bg));
+  --soft-fill: color-mix(in srgb, var(--surface-soft) 82%, var(--surface));
+  --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 90%, var(--surface));
+  --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 94%, var(--surface));
+  --overlay-fill: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
   --shadow: 0 34px 90px rgba(0, 0, 0, 0.4);
   --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.28);
   --shadow-popover: 0 16px 42px rgba(0, 0, 0, 0.32);
@@ -121,7 +144,8 @@
   --slider-thumb-shadow-hover: 0 2px 8px rgba(123, 199, 184, 0.32);
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --tick-active-shadow: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28));
-  --heatmap-level-empty: color-mix(in srgb, var(--muted) 10%, transparent);
+  --heatmap-level-empty: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
+  --scan-dim: rgba(0, 0, 0, 0.84);
   color-scheme: dark;
 }
 
@@ -253,7 +277,8 @@ button:hover {
   display: block;
 }
 
-.timeline-autoplay-button {
+.timeline-autoplay-button,
+.timeline-slideshow-fullscreen-button {
   display: grid;
   place-items: center;
   width: var(--project-info-height);
@@ -270,7 +295,8 @@ button:hover {
   transform: none;
 }
 
-.timeline-autoplay-button:hover {
+.timeline-autoplay-button:hover,
+.timeline-slideshow-fullscreen-button:hover:not(:disabled) {
   color: var(--ink);
   background: transparent;
   border: none;
@@ -278,17 +304,38 @@ button:hover {
   transform: none;
 }
 
-.timeline-autoplay-button:focus-visible {
+.timeline-autoplay-button:focus-visible,
+.timeline-slideshow-fullscreen-button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: 2px;
 }
 
 .timeline-autoplay-button svg {
-  width: calc(var(--project-info-height) - 12px);
-  height: calc(var(--project-info-height) - 12px);
+  width: 22px;
+  height: 22px;
 }
 
-.timeline-tools .timeline-autoplay-button:hover {
+.timeline-slideshow-fullscreen-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.timeline-slideshow-fullscreen-button.is-active {
+  color: var(--accent);
+}
+
+.timeline-slideshow-fullscreen-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.timeline-tools .timeline-autoplay-button:hover,
+.timeline-tools .timeline-slideshow-fullscreen-button:hover:not(:disabled) {
   border: none;
   background: transparent;
   box-shadow: none;
@@ -334,11 +381,88 @@ select {
 }
 
 .app-shell {
+  position: relative;
   display: grid;
   grid-template-rows: 60px 1fr 10px var(--timeline-height) var(--statusbar-height);
   height: 100%;
   max-height: 100vh;
   min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell.is-scanning::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+  background: var(--scan-dim);
+  pointer-events: auto;
+  transition: opacity 220ms ease;
+}
+
+.app-shell.is-scanning > .topbar,
+.app-shell.is-scanning > .showcase,
+.app-shell.is-scanning > .splitter,
+.app-shell.is-scanning > .timeline-panel,
+.app-shell.is-scanning > .statusbar {
+  pointer-events: none;
+  user-select: none;
+}
+
+.app-shell.is-slideshow-fullscreen > .topbar,
+.app-shell.is-slideshow-fullscreen > .splitter,
+.app-shell.is-slideshow-fullscreen > .timeline-panel,
+.app-shell.is-slideshow-fullscreen > .statusbar {
+  display: none !important;
+}
+
+.app-shell.is-slideshow-fullscreen > .showcase {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+}
+
+.app-shell.is-slideshow-fullscreen .showcase-layout,
+.app-shell.is-slideshow-fullscreen .slideshow-column,
+.app-shell.is-slideshow-fullscreen .slideshow-stage,
+.app-shell.is-slideshow-fullscreen .hero-artwork {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.app-shell.is-slideshow-fullscreen .showcase-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell.is-slideshow-fullscreen .nav-arrow,
+.app-shell.is-slideshow-fullscreen .hero-files-panel,
+.app-shell.is-slideshow-fullscreen .scan-overlay {
+  display: none !important;
+}
+
+.app-shell.is-slideshow-fullscreen .hero-artwork {
+  background: var(--bg);
+  animation: none;
+}
+
+.app-shell.is-slideshow-fullscreen .art-image {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+html.is-slideshow-fullscreen,
+html.is-slideshow-fullscreen body {
   overflow: hidden;
 }
 
@@ -350,7 +474,7 @@ select {
   gap: 16px;
   padding: 12px 28px 10px;
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  background: var(--chrome-bg);
   font-size: 12px;
 }
 
@@ -473,7 +597,7 @@ select {
 }
 
 .hero-artwork.is-loading {
-  background: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+  background: var(--soft-fill);
 }
 
 .hero-spinner {
@@ -644,11 +768,11 @@ select {
 }
 
 .hero-file-item.is-loading {
-  background: color-mix(in srgb, var(--surface-soft) 65%, transparent);
+  background: var(--soft-fill-hover);
 }
 
 .hero-file-item:hover {
-  background: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+  background: var(--soft-fill);
   color: var(--ink);
 }
 
@@ -667,7 +791,7 @@ select {
   display: block;
   object-fit: contain;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+  background: var(--soft-fill);
 }
 
 .hero-file-item img.hero-thumb-lazy {
@@ -842,8 +966,8 @@ select {
   padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--panel-bg);
-  box-shadow: var(--shadow-soft);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -45%) scale(0.98);
@@ -851,7 +975,10 @@ select {
 }
 
 .scan-overlay.active {
+  position: fixed;
+  z-index: 20;
   opacity: 1;
+  pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
 }
 
@@ -1879,11 +2006,24 @@ select {
 }
 
 .thumb-grid-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
   border-radius: 3px;
   background: color-mix(in srgb, var(--muted) 10%, transparent);
+}
+
+.thumb-grid-cell img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
 }
 
 .thumb-spinner {
@@ -1921,14 +2061,6 @@ select {
   color: var(--muted);
   font-size: 12px;
   text-align: center;
-}
-
-.thumb-grid-cell img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  object-position: center;
 }
 
 .thumb-placeholder {
