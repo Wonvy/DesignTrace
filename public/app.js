@@ -43,7 +43,6 @@
     heatmapViewYear: null,
     heatmapViewMonth: null,
     timelinePeriodSyncLock: false,
-    heatmapNavSyncLock: false,
     scanning: false,
     collapsedHeroFileGroups: new Set()
   };
@@ -90,10 +89,6 @@
     heatmapPanel: document.getElementById("heatmapPanel"),
     heatmapToggle: document.getElementById("heatmapToggle"),
     heatmap: document.getElementById("heatmap"),
-    heatmapYearSelect: document.getElementById("heatmapYearSelect"),
-    heatmapMonthSelect: document.getElementById("heatmapMonthSelect"),
-    heatmapPrevMonth: document.getElementById("heatmapPrevMonth"),
-    heatmapNextMonth: document.getElementById("heatmapNextMonth"),
     heatmapTooltip: document.getElementById("heatmapTooltip"),
     autoplayButton: document.getElementById("autoplayButton"),
     scopeFilterSelect: document.getElementById("scopeFilterSelect"),
@@ -358,9 +353,19 @@
     return relativePath.indexOf("/") < 0 || relativePath.split("/").filter(Boolean).length === 2;
   }
 
+  var ROOT_FOLDER_LABEL = "项目根目录";
+
+  function sortHeroFileGroupLabels(labels) {
+    return labels.slice().sort(function (a, b) {
+      if (a === ROOT_FOLDER_LABEL) return -1;
+      if (b === ROOT_FOLDER_LABEL) return 1;
+      return a.localeCompare(b, "zh-CN");
+    });
+  }
+
   function layerOneFolderLabel(relativePath) {
     var segments = relativePath.split("/").filter(Boolean);
-    if (segments.length <= 1) return "项目根目录";
+    if (segments.length <= 1) return ROOT_FOLDER_LABEL;
     return segments[0];
   }
 
@@ -1239,9 +1244,9 @@
   function render() {
     renderHero();
     renderTimeline();
+    updateTimelinePeriodFilters();
     renderHeatmap();
     renderControls();
-    updateTimelinePeriodFilters();
   }
 
   function renderHero() {
@@ -1436,6 +1441,7 @@
     populateTimelineYearSelect(period.year);
     populateTimelineMonthSelect(period.year, period.month);
     state.timelinePeriodSyncLock = false;
+    renderHeatmap();
   }
 
   function findFirstIndexForPeriod(year, month) {
@@ -1715,6 +1721,8 @@
       }
       groupCounts.set(file.folderLabel, groupCounts.get(file.folderLabel) + 1);
     });
+
+    groupOrder = sortHeroFileGroupLabels(groupOrder);
 
     groupOrder.forEach(function (folderLabel) {
       appendHeroFileGroupHeading(els.heroThumbs, project, folderLabel, groupCounts.get(folderLabel));
@@ -2270,105 +2278,34 @@
     if (!syncHeatmapViewToProject(heroProject())) syncHeatmapViewToRangeMax();
   }
 
+  function syncHeatmapViewFromTimelineFilters() {
+    if (!els.timelineYearSelect || !els.timelineMonthSelect) return false;
+    if (!state.filtered.length || els.timelineYearSelect.disabled) return false;
+    var year = parseInt(els.timelineYearSelect.value, 10);
+    var month = parseInt(els.timelineMonthSelect.value, 10);
+    if (!Number.isFinite(year) || !Number.isFinite(month)) return false;
+    state.heatmapViewYear = year;
+    state.heatmapViewMonth = month;
+    clampHeatmapView();
+    return true;
+  }
+
   function shiftHeatmapMonth(delta) {
     var range = heatmapProjectRange();
     if (!range || !delta) return false;
-    ensureHeatmapViewInitialized();
+    if (!syncHeatmapViewFromTimelineFilters()) ensureHeatmapViewInitialized();
     var idx = heatmapViewIndex(state.heatmapViewYear, state.heatmapViewMonth) + delta;
     var minIdx = heatmapViewIndex(range.minYear, range.minMonth);
     var maxIdx = heatmapViewIndex(range.maxYear, range.maxMonth);
     if (idx < minIdx || idx > maxIdx) return false;
-    state.heatmapViewYear = Math.floor(idx / 12);
-    state.heatmapViewMonth = idx % 12;
-    renderHeatmap();
+    var year = Math.floor(idx / 12);
+    var month = idx % 12;
+    state.timelinePeriodSyncLock = true;
+    populateTimelineYearSelect(year);
+    populateTimelineMonthSelect(year, month);
+    state.timelinePeriodSyncLock = false;
+    navigateToTimelinePeriod(year, month);
     return true;
-  }
-
-  function heatmapNavYears() {
-    var range = heatmapProjectRange();
-    if (!range) return [];
-    var years = [];
-    for (var year = range.minYear; year <= range.maxYear; year += 1) years.push(year);
-    return years;
-  }
-
-  function heatmapNavMonths(year) {
-    var range = heatmapProjectRange();
-    if (!range) return [];
-    var months = [];
-    for (var month = 0; month < 12; month += 1) {
-      var idx = heatmapViewIndex(year, month);
-      var minIdx = heatmapViewIndex(range.minYear, range.minMonth);
-      var maxIdx = heatmapViewIndex(range.maxYear, range.maxMonth);
-      if (idx >= minIdx && idx <= maxIdx) months.push(month);
-    }
-    return months;
-  }
-
-  function updateHeatmapNavControls() {
-    if (!els.heatmapYearSelect || !els.heatmapMonthSelect) return;
-    var range = heatmapProjectRange();
-    if (!range || !state.filtered.length) {
-      els.heatmapYearSelect.disabled = true;
-      els.heatmapMonthSelect.disabled = true;
-      if (els.heatmapPrevMonth) els.heatmapPrevMonth.disabled = true;
-      if (els.heatmapNextMonth) els.heatmapNextMonth.disabled = true;
-      els.heatmapYearSelect.innerHTML = "";
-      els.heatmapMonthSelect.innerHTML = "";
-      return;
-    }
-
-    ensureHeatmapViewInitialized();
-    els.heatmapYearSelect.disabled = false;
-    els.heatmapMonthSelect.disabled = false;
-
-    state.heatmapNavSyncLock = true;
-    if (els.heatmapYearSelect) {
-      els.heatmapYearSelect.innerHTML = heatmapNavYears().map(function (y) {
-        return '<option value="' + y + '">' + y + "年</option>";
-      }).join("");
-      els.heatmapYearSelect.value = String(state.heatmapViewYear);
-    }
-    var months = heatmapNavMonths(state.heatmapViewYear);
-    if (els.heatmapMonthSelect) {
-      els.heatmapMonthSelect.innerHTML = months.map(function (m) {
-        return '<option value="' + m + '">' + (m + 1) + "月</option>";
-      }).join("");
-      if (months.indexOf(state.heatmapViewMonth) >= 0) {
-        els.heatmapMonthSelect.value = String(state.heatmapViewMonth);
-      } else if (months.length) {
-        state.heatmapViewMonth = months[0];
-        els.heatmapMonthSelect.value = String(months[0]);
-      }
-    }
-    state.heatmapNavSyncLock = false;
-
-    var idx = heatmapViewIndex(state.heatmapViewYear, state.heatmapViewMonth);
-    var minIdx = heatmapViewIndex(range.minYear, range.minMonth);
-    var maxIdx = heatmapViewIndex(range.maxYear, range.maxMonth);
-    if (els.heatmapPrevMonth) els.heatmapPrevMonth.disabled = idx <= minIdx;
-    if (els.heatmapNextMonth) els.heatmapNextMonth.disabled = idx >= maxIdx;
-  }
-
-  function onHeatmapYearChange() {
-    if (state.heatmapNavSyncLock || !els.heatmapYearSelect) return;
-    var year = parseInt(els.heatmapYearSelect.value, 10);
-    if (!Number.isFinite(year)) return;
-    var months = heatmapNavMonths(year);
-    if (!months.length) return;
-    state.heatmapViewYear = year;
-    state.heatmapViewMonth = months.indexOf(state.heatmapViewMonth) >= 0 ? state.heatmapViewMonth : months[0];
-    renderHeatmap();
-  }
-
-  function onHeatmapMonthChange() {
-    if (state.heatmapNavSyncLock || !els.heatmapMonthSelect) return;
-    var year = parseInt(els.heatmapYearSelect.value, 10);
-    var month = parseInt(els.heatmapMonthSelect.value, 10);
-    if (!Number.isFinite(year) || !Number.isFinite(month)) return;
-    state.heatmapViewYear = year;
-    state.heatmapViewMonth = month;
-    renderHeatmap();
   }
 
   function buildHeatmapMonthGrid(year, monthIndex, buckets) {
@@ -2526,17 +2463,15 @@
       if (!state.heatmapCollapsed && !state.filtered.length) {
         els.heatmap.innerHTML = '<div class="heatmap-empty">无数据</div>';
       }
-      updateHeatmapNavControls();
       return;
     }
 
     if (options.syncToSelection) {
       syncHeatmapViewToProject(heroProject());
-    } else {
+    } else if (!syncHeatmapViewFromTimelineFilters()) {
       ensureHeatmapViewInitialized();
     }
     clampHeatmapView();
-    updateHeatmapNavControls();
 
     var buckets = buildHeatmapBuckets();
     var monthBlock = buildHeatmapMonthGrid(state.heatmapViewYear, state.heatmapViewMonth, buckets);
@@ -2592,6 +2527,7 @@
       if (!state.statusMessage && state.rootName) {
         els.statusStats.textContent = "本地读取，未上传。";
       }
+      syncStatusPathCopyable();
       return;
     }
 
@@ -2626,6 +2562,33 @@
     if (els.statusbar) {
       els.statusbar.classList.remove("is-preview");
     }
+    syncStatusPathCopyable();
+  }
+
+  function statusPathCanCopy() {
+    if (state.statusMessage) return null;
+    var project = heroProject();
+    return project && project.path ? project : null;
+  }
+
+  function syncStatusPathCopyable() {
+    if (!els.statusPath) return;
+    var copyProject = statusPathCanCopy();
+    els.statusPath.classList.toggle("is-copyable", !!copyProject);
+    if (copyProject) {
+      els.statusPath.title = "点击复制路径";
+      els.statusPath.setAttribute("role", "button");
+    } else {
+      els.statusPath.removeAttribute("title");
+      els.statusPath.removeAttribute("role");
+    }
+  }
+
+  async function handleStatusPathClick() {
+    var project = statusPathCanCopy();
+    if (!project) return;
+    var copied = await copyProjectPath(project);
+    showFolderActionStatus(copied ? "复制成功" : "复制路径失败");
   }
 
   function renderTimeline() {
@@ -3023,18 +2986,6 @@
     if (els.heatmapToggle) {
       els.heatmapToggle.addEventListener("click", toggleHeatmapPanel);
     }
-    if (els.heatmapYearSelect) els.heatmapYearSelect.addEventListener("change", onHeatmapYearChange);
-    if (els.heatmapMonthSelect) els.heatmapMonthSelect.addEventListener("change", onHeatmapMonthChange);
-    if (els.heatmapPrevMonth) {
-      els.heatmapPrevMonth.addEventListener("click", function () {
-        shiftHeatmapMonth(-1);
-      });
-    }
-    if (els.heatmapNextMonth) {
-      els.heatmapNextMonth.addEventListener("click", function () {
-        shiftHeatmapMonth(1);
-      });
-    }
     var heatmapBody = els.heatmapPanel && els.heatmapPanel.querySelector(".heatmap-panel-body");
     if (heatmapBody) {
       heatmapBody.addEventListener("wheel", function (event) {
@@ -3096,6 +3047,11 @@
       els.statusSlider.addEventListener("input", function () {
         if (!state.filtered.length || els.statusSlider.disabled) return;
         setTimelineScale(timelineScaleFromSlider(parseInt(els.statusSlider.value, 10)));
+      });
+    }
+    if (els.statusPath) {
+      els.statusPath.addEventListener("click", function () {
+        handleStatusPathClick();
       });
     }
     var heroWheelLock = false;

@@ -118,8 +118,10 @@
           </div>
         </div>
         <div class="timeline-body">
-          <div id="timeline" class="timeline" tabindex="0"></div>
           <aside id="heatmapPanel" class="heatmap-panel" aria-label="项目活跃热力图">
+            <div class="heatmap-panel-body">
+              <div id="heatmap" class="heatmap" role="application" aria-label="按月浏览项目活动日历"></div>
+            </div>
             <button
               id="heatmapToggle"
               class="heatmap-toggle"
@@ -132,22 +134,8 @@
                 <path d="M14.5 7.5 9 12l5.5 4.5" />
               </svg>
             </button>
-            <div class="heatmap-panel-body">
-              <div class="heatmap-nav">
-                <select id="heatmapYearSelect" class="heatmap-nav-select" aria-label="年份" disabled></select>
-                <div class="heatmap-month-nav">
-                  <button id="heatmapPrevMonth" class="heatmap-nav-arrow" type="button" aria-label="上个月" disabled>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 7.5 9 12l5.5 4.5" /></svg>
-                  </button>
-                  <select id="heatmapMonthSelect" class="heatmap-nav-select" aria-label="月份" disabled></select>
-                  <button id="heatmapNextMonth" class="heatmap-nav-arrow" type="button" aria-label="下个月" disabled>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 7.5 15 12l-5.5 4.5" /></svg>
-                  </button>
-                </div>
-              </div>
-              <div id="heatmap" class="heatmap" role="application" aria-label="按月浏览项目活动日历"></div>
-            </div>
           </aside>
+          <div id="timeline" class="timeline" tabindex="0"></div>
         </div>
         <div id="heatmapTooltip" class="heatmap-tooltip" role="tooltip" hidden></div>
       </section>
