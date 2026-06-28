@@ -35,10 +35,10 @@ DesignTrace 是一款纯前端 Web 应用：通过浏览器 **File System Access
 |---|---|
 | **在线** | https://wonvy.github.io/DesignTrace/ |
 | **下载** | https://github.com/Wonvy/DesignTrace/releases/latest/download/DesignTrace.html |
-| **CDN 备用** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@gh-pages/DesignTrace.html |
+| **CDN 备用** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@main/DesignTrace.html |
 
-首次启用 GitHub Pages：**仓库 Settings → Pages → Source：Deploy from a branch → Branch：`gh-pages` / (root) → Save**。  
-推送 `main` 后由 [pages.yml](.github/workflows/pages.yml) 自动部署单文件版本。
+首次启用 GitHub Pages：**仓库 Settings → Pages → Build and deployment → Source：GitHub Actions**。  
+推送 `main` 后自动部署，**无需**选择 `gh-pages` 分支。
 
 ## 环境要求
 
@@ -110,7 +110,7 @@ npm run build:standalone
 
 ## GitHub Pages 与 Releases
 
-**Pages** — 推送 `main` → [pages.yml](.github/workflows/pages.yml) 构建并部署到 `gh-pages`（入口为 `index.html`）。
+**Pages** — 推送 `main` → [pages.yml](.github/workflows/pages.yml) 通过 **GitHub Actions** 部署（站点根目录为 `index.html`）。
 
 **Release** — 推送版本标签 → [release.yml](.github/workflows/release.yml) 上传 `DesignTrace.html`：
 

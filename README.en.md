@@ -35,10 +35,10 @@ All processing happens in your browser. Files are never uploaded.
 |---|---|
 | **Live** | https://wonvy.github.io/DesignTrace/ |
 | **Download** | https://github.com/Wonvy/DesignTrace/releases/latest/download/DesignTrace.html |
-| **CDN mirror** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@gh-pages/DesignTrace.html |
+| **CDN mirror** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@main/DesignTrace.html |
 
-Enable GitHub Pages once: **Repository Settings → Pages → Source: Deploy from a branch → Branch: `gh-pages` / (root) → Save**.  
-Pushes to `main` deploy the standalone build via [pages.yml](.github/workflows/pages.yml).
+Enable GitHub Pages once: **Repository Settings → Pages → Build and deployment → Source: GitHub Actions**.  
+Pushes to `main` trigger [pages.yml](.github/workflows/pages.yml) — no `gh-pages` branch required.
 
 ## Requirements
 
@@ -100,7 +100,7 @@ Output: `dist/DesignTrace.html`. All CSS/JS from `public/index.html` are inlined
 
 ## GitHub Pages & Releases
 
-**Pages** — push to `main` → [pages.yml](.github/workflows/pages.yml) builds and deploys to `gh-pages` as `index.html`.
+**Pages** — push to `main` → [pages.yml](.github/workflows/pages.yml) builds and deploys via **GitHub Actions** (`index.html` at site root).
 
 **Release** — push a version tag → [release.yml](.github/workflows/release.yml) uploads `DesignTrace.html`:
 

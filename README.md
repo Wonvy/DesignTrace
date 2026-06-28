@@ -21,10 +21,11 @@ Local design project timeline browser.
 |---|---|
 | **Live / 在线** | https://wonvy.github.io/DesignTrace/ |
 | **Download / 下载** | https://github.com/Wonvy/DesignTrace/releases/latest/download/DesignTrace.html |
-| **CDN mirror / 备用** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@gh-pages/DesignTrace.html |
+| **CDN mirror / 备用** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@main/DesignTrace.html |
 
-> Enable GitHub Pages first: **Repository Settings → Pages → Source: Deploy from branch → `gh-pages` / (root)**  
-> 首次需启用 Pages：**仓库 Settings → Pages → Source：Deploy from a branch → Branch：`gh-pages` / (root)**
+> Enable GitHub Pages: **Repository Settings → Pages → Build and deployment → Source: GitHub Actions**  
+> 启用 Pages：**仓库 Settings → Pages → Build and deployment → Source：GitHub Actions**  
+> 推送 `main` 后 Actions 会自动部署；无需选择 `gh-pages` 分支。
 
 ---
 
