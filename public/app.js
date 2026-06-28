@@ -363,6 +363,67 @@
     return null;
   }
 
+  function parseSerialProjectName(folderName) {
+    var match = String(folderName || "").trim().match(/^(\d{3,4})\s+(.+)$/);
+    if (!match) return null;
+    return {
+      serial: parseInt(match[1], 10),
+      title: match[2].trim()
+    };
+  }
+
+  function resolveBucketTiming(bucket) {
+    if (bucket.designSourceTimes.length) {
+      var minTime = Math.min.apply(null, bucket.designSourceTimes);
+      var maxTime = Math.max.apply(null, bucket.designSourceTimes);
+      return {
+        createdAt: toIso(minTime),
+        modifiedAt: toIso(maxTime),
+        lastActiveAt: toIso(maxTime),
+        source: "design-source"
+      };
+    }
+    if (bucket.fileCount > 0 && bucket.latestModified > 0) {
+      var earliest = bucket.earliestModified === Number.POSITIVE_INFINITY
+        ? bucket.latestModified
+        : bucket.earliestModified;
+      return {
+        createdAt: toIso(earliest),
+        modifiedAt: toIso(bucket.latestModified),
+        lastActiveAt: toIso(bucket.latestModified),
+        source: "file-modified"
+      };
+    }
+    if (bucket.folderDate) {
+      return {
+        createdAt: bucket.folderDate,
+        modifiedAt: bucket.folderDate,
+        lastActiveAt: bucket.folderDate,
+        source: bucket.folderDateSource || "folder-name"
+      };
+    }
+    return null;
+  }
+
+  function projectTimelineDate(project) {
+    return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt || 0);
+  }
+
+  function compareProjectsByTimeline(a, b) {
+    var timeA = projectTimelineDate(a).getTime();
+    var timeB = projectTimelineDate(b).getTime();
+    var validA = Number.isFinite(timeA) && timeA > 0;
+    var validB = Number.isFinite(timeB) && timeB > 0;
+    if (validA && validB && timeA !== timeB) return timeA - timeB;
+    if (validA && !validB) return -1;
+    if (!validA && validB) return 1;
+    return (a.serial || 0) - (b.serial || 0);
+  }
+
+  function projectDisplayTitle(project) {
+    return project.title || project.name;
+  }
+
   function isLayerOneRelativePath(relativePath) {
     return relativePath.indexOf("/") < 0 || relativePath.split("/").filter(Boolean).length === 2;
   }
@@ -694,7 +755,7 @@
       var buckets = new Map();
       for await (var entry of rootHandle.values()) {
         if (entry.kind !== "directory" || IGNORE_NAMES.has(entry.name)) continue;
-        await registerFolderProject(entry, rootHandle.name, entry.name, 0, buckets);
+        await registerTopLevelFolderProject(entry, rootHandle.name, entry.name, buckets);
       }
 
       state.projects = Array.from(buckets.values()).map(toProject).filter(Boolean);
@@ -708,36 +769,23 @@
     }
   }
 
-  async function registerFolderProject(directoryHandle, rootName, relativePath, depth, buckets) {
-    if (depth > MAX_FOLDER_DEPTH) return;
-
-    var folderName = relativePath.split("/").pop() || directoryHandle.name;
-    var folderDate = parseFolderDate(folderName, relativePath, rootName);
-
-    for await (var childEntry of directoryHandle.values()) {
-      if (childEntry.kind !== "directory" || IGNORE_NAMES.has(childEntry.name)) continue;
-      await registerFolderProject(
-        childEntry,
-        rootName,
-        relativePath + "/" + childEntry.name,
-        depth + 1,
-        buckets
-      );
-    }
-
-    if (!folderDate) return;
-
+  async function registerTopLevelFolderProject(directoryHandle, rootName, relativePath, buckets) {
+    var folderName = directoryHandle.name;
+    var parsedDate = parseFolderDate(folderName, relativePath, rootName);
     var path = rootName + "/" + relativePath;
     if (buckets.has(path)) return;
 
     setScanProgress("正在分析 " + formatDisplayPath(relativePath) + "...");
-    var bucket = createBucket(directoryHandle.name, path, rootName, relativePath);
+    var bucket = createBucket(folderName, path, rootName, relativePath);
     bucket.directoryHandle = directoryHandle;
-    bucket.folderDate = folderDate.iso;
-    bucket.folderDateSource = folderDate.source;
+    if (parsedDate) {
+      bucket.folderDate = parsedDate.iso;
+      bucket.folderDateSource = parsedDate.source;
+    }
     await addDirectoryToBucket(bucket, directoryHandle, "", 0);
     buckets.set(path, bucket);
   }
+
   async function addDirectoryToBucket(bucket, directoryHandle, basePath, depth) {
     if (depth > MAX_FOLDER_DEPTH) return;
     for await (var entry of directoryHandle.values()) {
@@ -754,9 +802,7 @@
 
   function finishScan(message) {
     var lastSelectedId = localStorage.getItem("designtrace:selectedProjectId");
-    state.projects.sort(function (a, b) {
-      return new Date(a.lastActiveAt || 0) - new Date(b.lastActiveAt || 0);
-    });
+    state.projects.sort(compareProjectsByTimeline);
     state.selectedIndex = 0;
     state.timelineOffset = 0;
     state.heatmapViewYear = null;
@@ -837,32 +883,22 @@
     if (isLayerOneRelativePath(relativePath)) {
       bucket.layerOneFiles.push(meta);
     }
-    if (depth === 0 && DESIGN_SOURCE_EXTENSIONS.has(ext)) {
+    if (DESIGN_SOURCE_EXTENSIONS.has(ext)) {
       bucket.designSourceTimes.push(file.lastModified);
       bucket.designSourceCount += 1;
     }
   }
 
   function toProject(bucket) {
-    if (!bucket.folderDate) return null;
+    var serialInfo = parseSerialProjectName(bucket.name);
+    var timing = resolveBucketTiming(bucket);
+    if (!timing && bucket.fileCount === 0 && !serialInfo) return null;
 
     var classification = classify(bucket);
-    var folderDateIso = bucket.folderDate;
-    var createdAt;
-    var modifiedAt;
-    var lastActiveAt;
-
-    if (bucket.designSourceTimes.length) {
-      var minTime = Math.min.apply(null, bucket.designSourceTimes);
-      var maxTime = Math.max.apply(null, bucket.designSourceTimes);
-      createdAt = toIso(minTime);
-      modifiedAt = toIso(maxTime);
-      lastActiveAt = modifiedAt;
-    } else {
-      createdAt = folderDateIso;
-      modifiedAt = folderDateIso;
-      lastActiveAt = folderDateIso;
-    }
+    var createdAt = timing ? timing.createdAt : null;
+    var modifiedAt = timing ? timing.modifiedAt : null;
+    var lastActiveAt = timing ? timing.lastActiveAt : null;
+    var dateSource = timing ? timing.source : null;
 
     bucket.recentFiles.sort(function (a, b) {
       return new Date(b.modifiedAt) - new Date(a.modifiedAt);
@@ -918,6 +954,8 @@
     return {
       id: hashText(bucket.path),
       name: bucket.name,
+      title: serialInfo ? serialInfo.title : bucket.name,
+      serial: serialInfo ? serialInfo.serial : null,
       displayName: formatDisplayPath(bucket.relativePath),
       path: bucket.path,
       parentPath: bucket.parentPath,
@@ -925,8 +963,8 @@
       createdAt: createdAt,
       modifiedAt: modifiedAt,
       lastActiveAt: lastActiveAt,
-      folderDate: folderDateIso,
-      folderDateSource: bucket.folderDateSource,
+      folderDate: bucket.folderDate,
+      folderDateSource: dateSource || bucket.folderDateSource,
       fileCount: bucket.fileCount,
       folderCount: bucket.dirNames.size,
       sizeBytes: bucket.sizeBytes,
@@ -1089,6 +1127,45 @@
     return "";
   }
 
+  var SCOPE_FILTER_VALUES = new Set(["all", "sameParent", "sameRoot", "topLevel", "nested"]);
+  var SIZE_FILTER_VALUES = new Set(["all", "hideSmall", "medium", "large"]);
+
+  function loadFilterPreferences() {
+    var scope = localStorage.getItem("designtrace:scopeFilter");
+    if (scope && SCOPE_FILTER_VALUES.has(scope)) {
+      state.scopeFilter = scope;
+      if (els.scopeFilterSelect) els.scopeFilterSelect.value = scope;
+    }
+    var sizeFilter = localStorage.getItem("designtrace:sizeFilter");
+    if (sizeFilter && SIZE_FILTER_VALUES.has(sizeFilter)) {
+      state.sizeFilter = sizeFilter;
+      if (els.sizeFilterSelect) els.sizeFilterSelect.value = sizeFilter;
+    }
+    try {
+      var extRaw = localStorage.getItem("designtrace:extFilter");
+      if (extRaw) {
+        var extValues = JSON.parse(extRaw);
+        if (Array.isArray(extValues) && extValues.length) {
+          state.extFilter = extValues.filter(function (value) {
+            return typeof value === "string" && value;
+          });
+        }
+      }
+    } catch (error) {
+      /* ignore invalid cache */
+    }
+  }
+
+  function saveFilterPreferences() {
+    try {
+      localStorage.setItem("designtrace:scopeFilter", state.scopeFilter || "all");
+      localStorage.setItem("designtrace:sizeFilter", state.sizeFilter || "all");
+      localStorage.setItem("designtrace:extFilter", JSON.stringify(state.extFilter || ["all"]));
+    } catch (error) {
+      /* ignore quota errors */
+    }
+  }
+
   function extensionFilterLabel(values) {
     if (!values || !values.length || values.indexOf("all") >= 0) return "";
     return values.map(function (ext) {
@@ -1163,10 +1240,18 @@
       "</div>"
     ].join("");
     var values = current.length ? current : ["all"];
+    var hasChecked = false;
     Array.from(els.extFilterMenu.querySelectorAll('input[type="checkbox"]')).forEach(function (input) {
-      input.checked = values.indexOf(input.value) >= 0;
+      var checked = values.indexOf(input.value) >= 0;
+      input.checked = checked;
+      if (checked) hasChecked = true;
     });
-    state.extFilter = getExtFilterValues();
+    if (!hasChecked) {
+      var allInput = els.extFilterMenu.querySelector('input[value="all"]');
+      if (allInput) allInput.checked = true;
+      values = ["all"];
+    }
+    state.extFilter = values;
     updateExtFilterTriggerLabel();
   }
 
@@ -1217,8 +1302,8 @@
     state.filtered = state.projects
       .filter(function (project) {
         if (query) {
-          var matched = [project.name, project.displayName, project.path, project.relativePath, formatDisplayPath(project.path), formatDisplayPath(project.relativePath), project.projectType].some(function (value) {
-            return value.toLowerCase().includes(query);
+          var matched = [project.name, project.title, project.serial, project.displayName, project.path, project.relativePath, formatDisplayPath(project.path), formatDisplayPath(project.relativePath), project.projectType].some(function (value) {
+            return value != null && String(value).toLowerCase().includes(query);
           });
           if (!matched) return false;
         }
@@ -1226,9 +1311,7 @@
         if (!projectMatchesExtensions(project, extValues, anchor)) return false;
         return matchesSizeFilter(project, sizeFilter);
       })
-      .sort(function (a, b) {
-        return new Date(a.lastActiveAt || 0) - new Date(b.lastActiveAt || 0);
-      });
+      .sort(compareProjectsByTimeline);
     state.timelineTimeRangeCache = null;
 
     if (selectedId) {
@@ -1240,6 +1323,7 @@
       state.selectedIndex = 0;
     }
     render();
+    saveFilterPreferences();
   }
 
   function heroProject() {
@@ -1375,8 +1459,8 @@
     if (els.projectInfo) {
       els.projectInfo.classList.toggle("is-ready", !state.scanning && !!selectedProject);
     }
-    els.heroKicker.textContent = "";
-    els.heroTitle.textContent = displayProject.name;
+    els.heroKicker.textContent = displayProject.serial ? "#" + displayProject.serial : "";
+    els.heroTitle.textContent = projectDisplayTitle(displayProject);
     els.heroMeta.textContent = displayProject.fileCount + " 个文件 · "
       + displayProject.folderCount + " 个文件夹 · "
       + formatBytes(displayProject.sizeBytes);
@@ -1391,7 +1475,7 @@
 
     if (!preview) {
       els.heroArtwork.classList.remove("is-loading");
-      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, formatDisplayPath(displayProject.path));
+      els.heroArtwork.innerHTML = emptyArtwork(projectDisplayTitle(displayProject), formatDisplayPath(displayProject.path));
       heroArtworkLoadingGen = null;
       resolveHeroImageLoadWaiters();
       return;
@@ -1452,7 +1536,7 @@
       if (gen !== heroRenderGeneration) return;
       heroArtworkLoadingGen = null;
       els.heroArtwork.classList.remove("is-loading");
-      els.heroArtwork.innerHTML = emptyArtwork(displayProject.displayName || displayProject.name, formatDisplayPath(displayProject.path));
+      els.heroArtwork.innerHTML = emptyArtwork(projectDisplayTitle(displayProject), formatDisplayPath(displayProject.path));
       resolveHeroImageLoadWaiters();
     });
 
@@ -1489,15 +1573,11 @@
     }
   }
 
-  function projectTimelineDate(project) {
-    return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt);
-  }
-
   function timelineAvailableYears() {
     var years = new Set();
     state.filtered.forEach(function (project) {
       var date = projectTimelineDate(project);
-      if (Number.isFinite(date.getTime())) years.add(date.getFullYear());
+      if (Number.isFinite(date.getTime()) && date.getTime() > 0) years.add(date.getFullYear());
     });
     return Array.from(years).sort(function (a, b) {
       return a - b;
@@ -1882,7 +1962,7 @@
     if (preview && IMAGE_EXTENSIONS.has(preview.extension)) {
       return '<img class="art-image art-image-lazy" alt="' + escapeHtml(preview.name) + '">';
     }
-    return emptyArtwork(project.displayName || project.name, formatDisplayPath(project.path));
+    return emptyArtwork(projectDisplayTitle(project), formatDisplayPath(project.path));
   }
 
   function emptyArtwork(title, subtitle) {
@@ -2506,7 +2586,7 @@
     if (projects.length) {
       html.push('<ul class="heatmap-tooltip-list">');
       projects.slice(0, HEATMAP_TOOLTIP_LIMIT).forEach(function (project) {
-        html.push("<li>" + escapeHtml(project.displayName || project.name) + "</li>");
+        html.push("<li>" + escapeHtml(projectDisplayTitle(project)) + "</li>");
       });
       html.push("</ul>");
       if (projects.length > HEATMAP_TOOLTIP_LIMIT) {
@@ -2952,7 +3032,7 @@
       "</button>",
       "</div>",
       '<div class="thumb-meta">',
-      '<div class="thumb-title">' + escapeHtml(project.name) + "</div>",
+      '<div class="thumb-title">' + escapeHtml(projectDisplayTitle(project)) + "</div>",
       timelineDesignIconsMarkup(project),
       "</div>"
     ].join("");
@@ -3434,6 +3514,7 @@
     }
   }
 
+  loadFilterPreferences();
   applyTheme(localStorage.getItem("designtrace:theme"));
   state.heatmapCollapsed = localStorage.getItem("designtrace:heatmapCollapsed") === "1";
   updateFolderTooltip();
