@@ -970,6 +970,7 @@ html.is-slideshow-fullscreen body {
   align-items: center;
   gap: 14px;
   min-width: 260px;
+  max-width: min(420px, calc(100vw - 32px));
   padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -979,6 +980,46 @@ html.is-slideshow-fullscreen body {
   pointer-events: none;
   transform: translate(-50%, -45%) scale(0.98);
   transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.scan-overlay-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.scan-overlay-hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.scan-cancel-button {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: 28px;
+  height: 28px;
+  margin-top: -2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.scan-cancel-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.scan-cancel-button:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--line) 42%, transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+.scan-cancel-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .scan-overlay.active {
@@ -1730,7 +1771,10 @@ html.is-slideshow-fullscreen body {
 
 .timeline-track {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  height: 100%;
+  min-width: 100%;
   transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }

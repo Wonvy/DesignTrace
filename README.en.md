@@ -60,7 +60,7 @@ Open `http://127.0.0.1:8080` (port may increment if 8080 is busy).
 
 ## Project folder layout
 
-Each **direct child folder** of the root you select becomes one project. Nested folders are scanned for files but are not registered as separate projects.
+Each **direct child folder** of the root becomes a project when its name matches a serial (`870 家书`) or date pattern. **Pure container folders** (e.g. `#2026`) are scanned recursively for date- or serial-named subfolders. Deeper nested folders become separate projects only when date- or serial-named; ordinary subfolders are merged into their parent project.
 
 Supported naming examples:
 

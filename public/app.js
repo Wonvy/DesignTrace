@@ -65,6 +65,7 @@
   var HEATMAP_TOOLTIP_LIMIT = 8;
   var HEATMAP_WHEEL_COOLDOWN = 120;
   var scanUiLastAt = 0;
+  var activeScanSession = 0;
   var heatmapWheelLock = false;
   var heroImageLoadWaiters = [];
   var heroArtworkLoadingGen = null;
@@ -89,6 +90,7 @@
     heroMeta: document.getElementById("heroMeta"),
     scanOverlay: document.getElementById("scanOverlay"),
     scanText: document.getElementById("scanText"),
+    scanCancelButton: document.getElementById("scanCancelButton"),
     timeline: document.getElementById("timeline"),
     timelineYearSelect: document.getElementById("timelineYearSelect"),
     timelineMonthSelect: document.getElementById("timelineMonthSelect"),
@@ -744,6 +746,9 @@
   }
 
   async function scanDirectoryHandle(rootHandle, doneMessage) {
+    var sessionId = startScanSession();
+    var snapshot = captureScanSnapshot();
+
     try {
       revokeObjectUrls();
       state.rootHandle = rootHandle;
@@ -754,14 +759,21 @@
 
       var buckets = new Map();
       for await (var entry of rootHandle.values()) {
+        assertScanActive(sessionId);
         if (entry.kind !== "directory" || IGNORE_NAMES.has(entry.name)) continue;
-        await registerTopLevelFolderProject(entry, rootHandle.name, entry.name, buckets);
+        await registerFolderProject(entry, rootHandle.name, entry.name, 0, buckets, sessionId);
       }
 
+      assertScanActive(sessionId);
       state.projects = Array.from(buckets.values()).map(toProject).filter(Boolean);
-      setScanning(false);
       finishScan(doneMessage || "扫描完成。");
     } catch (error) {
+      if (isScanCancelled(error)) {
+        restoreScanSnapshot(snapshot);
+        applyFilters();
+        setStatus("已取消扫描。可以重新选择文件夹。");
+        return;
+      }
       setStatus("扫描失败，可以重新选择文件夹。");
       throw error;
     } finally {
@@ -769,9 +781,81 @@
     }
   }
 
-  async function registerTopLevelFolderProject(directoryHandle, rootName, relativePath, buckets) {
+  function startScanSession() {
+    activeScanSession += 1;
+    return activeScanSession;
+  }
+
+  function cancelActiveScan() {
+    if (!state.scanning) return false;
+    activeScanSession += 1;
+    setScanProgress("正在取消...");
+    return true;
+  }
+
+  function isScanCancelled(error) {
+    return !!(error && error.name === "ScanCancelledError");
+  }
+
+  function assertScanActive(sessionId) {
+    if (sessionId !== activeScanSession) {
+      var error = new Error("Scan cancelled");
+      error.name = "ScanCancelledError";
+      throw error;
+    }
+  }
+
+  function captureScanSnapshot() {
+    return {
+      projects: state.projects.slice(),
+      rootHandle: state.rootHandle,
+      rootName: state.rootName
+    };
+  }
+
+  function restoreScanSnapshot(snapshot) {
+    state.projects = snapshot.projects;
+    state.rootHandle = snapshot.rootHandle;
+    state.rootName = snapshot.rootName || "";
+    updateFolderTooltip();
+  }
+
+  async function registerFolderProject(directoryHandle, rootName, relativePath, depth, buckets, sessionId) {
+    assertScanActive(sessionId);
+    if (depth > MAX_FOLDER_DEPTH) return;
+
     var folderName = directoryHandle.name;
     var parsedDate = parseFolderDate(folderName, relativePath, rootName);
+
+    // 根目录下第一层文件夹：一律作为独立项目（870 家书 等），不再拆分子文件夹
+    if (depth === 0) {
+      await registerProjectBucket(directoryHandle, rootName, relativePath, parsedDate, buckets, sessionId);
+      return;
+    }
+
+    var serialInfo = parseSerialProjectName(folderName);
+    var isNamedProject = !!(parsedDate || serialInfo);
+
+    for await (var childEntry of directoryHandle.values()) {
+      assertScanActive(sessionId);
+      if (childEntry.kind !== "directory" || IGNORE_NAMES.has(childEntry.name)) continue;
+      await registerFolderProject(
+        childEntry,
+        rootName,
+        relativePath + "/" + childEntry.name,
+        depth + 1,
+        buckets,
+        sessionId
+      );
+    }
+
+    if (!isNamedProject) return;
+    await registerProjectBucket(directoryHandle, rootName, relativePath, parsedDate, buckets, sessionId);
+  }
+
+  async function registerProjectBucket(directoryHandle, rootName, relativePath, parsedDate, buckets, sessionId) {
+    assertScanActive(sessionId);
+    var folderName = directoryHandle.name;
     var path = rootName + "/" + relativePath;
     if (buckets.has(path)) return;
 
@@ -782,20 +866,23 @@
       bucket.folderDate = parsedDate.iso;
       bucket.folderDateSource = parsedDate.source;
     }
-    await addDirectoryToBucket(bucket, directoryHandle, "", 0);
+    await addDirectoryToBucket(bucket, directoryHandle, "", 0, sessionId);
     buckets.set(path, bucket);
   }
 
-  async function addDirectoryToBucket(bucket, directoryHandle, basePath, depth) {
+  async function addDirectoryToBucket(bucket, directoryHandle, basePath, depth, sessionId) {
+    assertScanActive(sessionId);
     if (depth > MAX_FOLDER_DEPTH) return;
     for await (var entry of directoryHandle.values()) {
+      assertScanActive(sessionId);
       if (entry.kind === "directory") {
         if (IGNORE_NAMES.has(entry.name)) continue;
         bucket.dirNames.add((basePath ? basePath + "/" : "") + entry.name);
-        await addDirectoryToBucket(bucket, entry, (basePath ? basePath + "/" : "") + entry.name, depth + 1);
+        await addDirectoryToBucket(bucket, entry, (basePath ? basePath + "/" : "") + entry.name, depth + 1, sessionId);
         continue;
       }
       var file = await entry.getFile();
+      assertScanActive(sessionId);
       addFileToBucket(bucket, file, (basePath ? basePath + "/" : "") + entry.name);
     }
   }
@@ -819,7 +906,18 @@
         state.anchorProjectId = state.filtered[state.selectedIndex].id;
       }
       state.statusMessage = "";
-      centerActiveThumb(false);
+      requestAnimationFrame(function () {
+        state.cachedTimelineMetrics = null;
+        state.timelineTimeRangeCache = null;
+        if (state.filtered.length) {
+          var metrics = timelineMetrics();
+          state.cachedTimelineMetrics = metrics;
+          clampTimelineOffset(metrics);
+          var track = els.timeline.querySelector(".timeline-track");
+          if (track) track.style.width = metrics.trackWidth + "px";
+        }
+        centerActiveThumb(false);
+      });
     });
   }
 
@@ -3302,6 +3400,9 @@
     if (els.timelineYearSelect) els.timelineYearSelect.addEventListener("change", onTimelineYearChange);
     if (els.timelineMonthSelect) els.timelineMonthSelect.addEventListener("change", onTimelineMonthChange);
 
+    if (els.scanCancelButton) {
+      els.scanCancelButton.addEventListener("click", cancelActiveScan);
+    }
     els.pickDirectoryButton.addEventListener("click", pickDirectory);
     els.rescanButton.addEventListener("click", rescan);
     els.themeButton.addEventListener("click", toggleTheme);
@@ -3483,7 +3584,14 @@
     });
 
     window.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") setExtFilterOpen(false);
+      if (event.key === "Escape") {
+        if (cancelActiveScan()) {
+          event.preventDefault();
+          return;
+        }
+        setExtFilterOpen(false);
+        return;
+      }
       if (event.key === "ArrowLeft") selectIndex(state.selectedIndex - 1);
       if (event.key === "ArrowRight") selectIndex(state.selectedIndex + 1);
     });

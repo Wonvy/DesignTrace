@@ -53,10 +53,16 @@
 
         <div id="scanOverlay" class="scan-overlay" aria-live="polite">
           <div class="scan-orbit" aria-hidden="true"></div>
-          <div>
+          <div class="scan-overlay-body">
             <strong>正在扫描</strong>
             <span id="scanText">读取本地项目结构...</span>
+            <p class="scan-overlay-hint">按 Esc 取消</p>
           </div>
+          <button id="scanCancelButton" class="scan-cancel-button icon-button" type="button" aria-label="取消扫描">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
         </div>
       </main>
 
