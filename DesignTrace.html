@@ -1,0 +1,6111 @@
+<!doctype html>
+<html lang="zh-CN">
+<!--
+  DesignTrace standalone build
+  Generated: 2026-06-28T06:45:34.975Z
+  Requires https:// (File System Access API)
+-->
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DesignTrace</title>
+    <style>
+:root {
+  --bg: #e6e2da;
+  --surface: #f6f4ef;
+  --surface-raised: #fffcf8;
+  --surface-soft: #ddd7cd;
+  --ink: #181614;
+  --muted: #5f5a54;
+  --line: rgba(24, 22, 20, 0.12);
+  --line-strong: rgba(24, 22, 20, 0.22);
+  --accent: #1d6b61;
+  --accent-strong: #155248;
+  --on-accent: #f8fffd;
+  --tick-active: var(--accent);
+  --tick-active-muted: color-mix(in srgb, var(--accent) 72%, var(--muted));
+  --control-bg: color-mix(in srgb, var(--surface-raised) 92%, var(--surface));
+  --panel-bg: color-mix(in srgb, var(--surface) 88%, var(--bg));
+  --chrome-bg: color-mix(in srgb, var(--surface) 72%, transparent);
+  --soft-fill: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+  --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 65%, transparent);
+  --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 70%, transparent);
+  --overlay-fill: color-mix(in srgb, var(--muted) 10%, transparent);
+  --shadow: 0 24px 64px rgba(24, 20, 16, 0.11);
+  --shadow-soft: 0 12px 34px rgba(24, 20, 16, 0.08);
+  --shadow-popover: 0 16px 42px rgba(24, 20, 16, 0.14);
+  --accent-shadow: 0 10px 26px rgba(29, 107, 97, 0.14);
+  --slider-fill: var(--accent);
+  --slider-track: color-mix(in srgb, var(--line) 90%, transparent);
+  --slider-thumb-shadow: 0 1px 4px rgba(29, 107, 97, 0.22);
+  --slider-thumb-shadow-hover: 0 2px 8px rgba(29, 107, 97, 0.28);
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  --tick-active-shadow: drop-shadow(0 1px 2px rgba(29, 107, 97, 0.14));
+  --heatmap-level-empty: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
+  --scan-dim: rgba(8, 7, 6, 0.48);
+  --timeline-height: 348px;
+  --timeline-padding: 168px;
+  --statusbar-height: 32px;
+  --project-info-height: 64px;
+  color-scheme: light;
+  font-family: Bahnschrift, "Microsoft YaHei", "微软雅黑", "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0e0d;
+    --surface: #1a1917;
+    --surface-raised: #22201d;
+    --surface-soft: #2a2824;
+    --ink: #f2eee7;
+    --muted: #9a948a;
+    --line: rgba(242, 238, 231, 0.13);
+    --line-strong: rgba(242, 238, 231, 0.24);
+    --accent: #7bc7b8;
+    --accent-strong: #95d6ca;
+    --on-accent: #10100f;
+    --tick-active: #f2eee7;
+    --tick-active-muted: rgba(242, 238, 231, 0.88);
+    --control-bg: color-mix(in srgb, var(--surface-raised) 98%, var(--surface));
+    --panel-bg: color-mix(in srgb, var(--surface) 96%, var(--bg));
+    --chrome-bg: color-mix(in srgb, var(--surface) 94%, var(--bg));
+    --soft-fill: color-mix(in srgb, var(--surface-soft) 82%, var(--surface));
+    --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 90%, var(--surface));
+    --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 94%, var(--surface));
+    --overlay-fill: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
+    --shadow: 0 34px 90px rgba(0, 0, 0, 0.4);
+    --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.28);
+    --shadow-popover: 0 16px 42px rgba(0, 0, 0, 0.32);
+    --accent-shadow: 0 10px 26px rgba(123, 199, 184, 0.12);
+    --slider-fill: var(--accent);
+    --slider-track: color-mix(in srgb, var(--line) 90%, transparent);
+    --slider-thumb-shadow: 0 1px 4px rgba(123, 199, 184, 0.24);
+    --slider-thumb-shadow-hover: 0 2px 8px rgba(123, 199, 184, 0.32);
+    --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --tick-active-shadow: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28));
+    --heatmap-level-empty: color-mix(in srgb, var(--muted) 12%, var(--surface));
+    --scan-dim: rgba(0, 0, 0, 0.58);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #e6e2da;
+  --surface: #f6f4ef;
+  --surface-raised: #fffcf8;
+  --surface-soft: #ddd7cd;
+  --ink: #181614;
+  --muted: #5f5a54;
+  --line: rgba(24, 22, 20, 0.12);
+  --line-strong: rgba(24, 22, 20, 0.22);
+  --accent: #1d6b61;
+  --accent-strong: #155248;
+  --on-accent: #f8fffd;
+  --tick-active: var(--accent);
+  --tick-active-muted: color-mix(in srgb, var(--accent) 72%, var(--muted));
+  --control-bg: color-mix(in srgb, var(--surface-raised) 92%, var(--surface));
+  --panel-bg: color-mix(in srgb, var(--surface) 88%, var(--bg));
+  --chrome-bg: color-mix(in srgb, var(--surface) 72%, transparent);
+  --soft-fill: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+  --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 65%, transparent);
+  --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 70%, transparent);
+  --overlay-fill: color-mix(in srgb, var(--muted) 10%, transparent);
+  --shadow: 0 24px 64px rgba(24, 20, 16, 0.11);
+  --shadow-soft: 0 12px 34px rgba(24, 20, 16, 0.08);
+  --shadow-popover: 0 16px 42px rgba(24, 20, 16, 0.14);
+  --accent-shadow: 0 10px 26px rgba(29, 107, 97, 0.14);
+  --slider-fill: var(--accent);
+  --slider-track: color-mix(in srgb, var(--line) 90%, transparent);
+  --slider-thumb-shadow: 0 1px 4px rgba(29, 107, 97, 0.22);
+  --slider-thumb-shadow-hover: 0 2px 8px rgba(29, 107, 97, 0.28);
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  --tick-active-shadow: drop-shadow(0 1px 2px rgba(29, 107, 97, 0.14));
+  --heatmap-level-empty: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
+  --scan-dim: rgba(8, 7, 6, 0.48);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f0e0d;
+  --surface: #1a1917;
+  --surface-raised: #22201d;
+  --surface-soft: #2a2824;
+  --ink: #f2eee7;
+  --muted: #9a948a;
+  --line: rgba(242, 238, 231, 0.13);
+  --line-strong: rgba(242, 238, 231, 0.24);
+  --accent: #7bc7b8;
+  --accent-strong: #95d6ca;
+  --on-accent: #10100f;
+  --tick-active: #f2eee7;
+  --tick-active-muted: rgba(242, 238, 231, 0.88);
+  --control-bg: color-mix(in srgb, var(--surface-raised) 98%, var(--surface));
+  --panel-bg: color-mix(in srgb, var(--surface) 96%, var(--bg));
+  --chrome-bg: color-mix(in srgb, var(--surface) 94%, var(--bg));
+  --soft-fill: color-mix(in srgb, var(--surface-soft) 82%, var(--surface));
+  --soft-fill-hover: color-mix(in srgb, var(--surface-soft) 90%, var(--surface));
+  --soft-fill-strong: color-mix(in srgb, var(--surface-soft) 94%, var(--surface));
+  --overlay-fill: color-mix(in srgb, var(--muted) 16%, var(--surface-soft));
+  --shadow: 0 34px 90px rgba(0, 0, 0, 0.4);
+  --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.28);
+  --shadow-popover: 0 16px 42px rgba(0, 0, 0, 0.32);
+  --accent-shadow: 0 10px 26px rgba(123, 199, 184, 0.12);
+  --slider-fill: var(--accent);
+  --slider-track: color-mix(in srgb, var(--line) 90%, transparent);
+  --slider-thumb-shadow: 0 1px 4px rgba(123, 199, 184, 0.24);
+  --slider-thumb-shadow-hover: 0 2px 8px rgba(123, 199, 184, 0.32);
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --tick-active-shadow: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28));
+  --heatmap-level-empty: color-mix(in srgb, var(--muted) 12%, var(--surface));
+  --scan-dim: rgba(0, 0, 0, 0.58);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 42%, transparent) transparent;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  min-width: 1080px;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 70% at 50% -18%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 58%),
+    var(--bg);
+  color: var(--ink);
+  transition: background-color 260ms ease, color 260ms ease;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 34%, transparent);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 58%, var(--muted));
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--accent);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select,
+input {
+  border: 1px solid var(--line);
+  background: var(--control-bg);
+  color: var(--ink);
+  border-radius: 999px;
+  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+button {
+  height: 36px;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+button:hover {
+  border-color: var(--accent);
+  box-shadow: var(--accent-shadow);
+  transform: translateY(-1px);
+}
+
+.icon-button {
+  width: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.icon-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.play-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.play-button svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.play-button .play-icon,
+.play-button .pause-icon {
+  fill: currentColor;
+}
+
+.play-button .pause-icon {
+  display: none;
+}
+
+.play-button.playing .play-icon {
+  display: none;
+}
+
+.play-button.playing .pause-icon {
+  display: block;
+}
+
+.timeline-autoplay-button,
+.timeline-slideshow-fullscreen-button {
+  display: grid;
+  place-items: center;
+  width: var(--project-info-height);
+  min-width: var(--project-info-height);
+  max-width: var(--project-info-height);
+  height: var(--project-info-height);
+  padding: 0;
+  gap: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  transform: none;
+}
+
+.timeline-autoplay-button:hover,
+.timeline-slideshow-fullscreen-button:hover:not(:disabled) {
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.timeline-autoplay-button:focus-visible,
+.timeline-slideshow-fullscreen-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.timeline-autoplay-button svg {
+  width: 22px;
+  height: 22px;
+}
+
+.timeline-slideshow-fullscreen-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.timeline-slideshow-fullscreen-button.is-active {
+  color: var(--accent);
+}
+
+.timeline-slideshow-fullscreen-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.timeline-tools .timeline-autoplay-button:hover,
+.timeline-tools .timeline-slideshow-fullscreen-button:hover:not(:disabled) {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+#pickDirectoryButton {
+  position: relative;
+}
+
+#pickDirectoryButton::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: calc(100% + 10px);
+  width: max-content;
+  max-width: 360px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  white-space: normal;
+}
+
+#pickDirectoryButton:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+input,
+select {
+  height: 36px;
+  padding: 0 12px;
+}
+
+.app-shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: 60px 1fr 10px var(--timeline-height) var(--statusbar-height);
+  height: 100%;
+  max-height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell.is-scanning::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+  background: var(--scan-dim);
+  pointer-events: auto;
+  transition: opacity 220ms ease;
+}
+
+.app-shell.is-scanning > .topbar,
+.app-shell.is-scanning > .showcase,
+.app-shell.is-scanning > .splitter,
+.app-shell.is-scanning > .timeline-panel,
+.app-shell.is-scanning > .statusbar {
+  pointer-events: none;
+  user-select: none;
+}
+
+.app-shell.is-slideshow-fullscreen > .topbar,
+.app-shell.is-slideshow-fullscreen > .splitter,
+.app-shell.is-slideshow-fullscreen > .timeline-panel,
+.app-shell.is-slideshow-fullscreen > .statusbar {
+  display: none !important;
+}
+
+.app-shell.is-slideshow-fullscreen > .showcase {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+}
+
+.app-shell.is-slideshow-fullscreen .showcase-layout,
+.app-shell.is-slideshow-fullscreen .slideshow-column,
+.app-shell.is-slideshow-fullscreen .slideshow-stage,
+.app-shell.is-slideshow-fullscreen .hero-artwork {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.app-shell.is-slideshow-fullscreen .showcase-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell.is-slideshow-fullscreen .nav-arrow,
+.app-shell.is-slideshow-fullscreen .hero-files-panel,
+.app-shell.is-slideshow-fullscreen .scan-overlay {
+  display: none !important;
+}
+
+.app-shell.is-slideshow-fullscreen .hero-artwork {
+  background: var(--bg);
+  animation: none;
+}
+
+.app-shell.is-slideshow-fullscreen .art-image {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+html.is-slideshow-fullscreen,
+html.is-slideshow-fullscreen body {
+  overflow: hidden;
+}
+
+.topbar {
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 28px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--chrome-bg);
+  font-size: 12px;
+}
+
+.brand {
+  grid-column: 1;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.brand-version {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.toolbar {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar button {
+  height: 30px;
+  padding: 0 11px;
+  font-size: 14px;
+}
+
+.topbar .icon-button {
+  width: 30px;
+  padding: 0;
+}
+
+.topbar .icon-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.topbar input,
+.topbar select {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.search {
+  grid-column: 2;
+  justify-self: center;
+  width: min(320px, 42vw);
+}
+
+.directory-input {
+  display: none;
+}
+
+.showcase {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+  padding: 0 28px;
+  box-sizing: border-box;
+}
+
+.showcase-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.showcase-layout.has-files-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 36%);
+}
+
+.slideshow-column {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.slideshow-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.hero-artwork {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: translateY(0);
+  animation: heroIn 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-artwork.is-loading {
+  background: var(--soft-fill);
+}
+
+.hero-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--muted) 35%, transparent);
+  border-top-color: var(--accent);
+  animation: thumb-spin 0.7s linear infinite;
+}
+
+.hero-artwork.is-loading .art-image {
+  opacity: 0;
+}
+
+.hero-files-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hero-files-panel[hidden] {
+  display: none !important;
+}
+
+.hero-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 4px 6px;
+  align-content: start;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px;
+}
+
+.hero-thumbs .hero-file-group {
+  grid-column: 1 / -1;
+}
+
+.hero-file-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 4px 6px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  cursor: pointer;
+  text-align: left;
+  color: color-mix(in srgb, var(--muted) 48%, var(--ink));
+  transition: color 180ms ease;
+}
+
+.hero-file-group:hover {
+  color: var(--ink);
+}
+
+.hero-file-group-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  transition: color 180ms ease;
+}
+
+.hero-file-group-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--muted) 92%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  transition: color 180ms ease;
+}
+
+.hero-file-group-count::after {
+  content: " 项";
+}
+
+.hero-file-group-chevron {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 180ms ease;
+  opacity: 0.72;
+}
+
+.hero-file-group:hover .hero-file-group-meta,
+.hero-file-group:hover .hero-file-group-title {
+  color: inherit;
+}
+
+.hero-file-group:hover .hero-file-group-meta {
+  color: var(--muted);
+}
+
+.hero-file-group:hover .hero-file-group-chevron {
+  opacity: 1;
+}
+
+.hero-file-group.is-collapsed .hero-file-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.hero-file-item.is-group-collapsed {
+  display: none;
+}
+
+.hero-file-item {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  padding: 3px 5px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  overflow: hidden;
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 180ms ease, color 180ms ease;
+  position: relative;
+  color: color-mix(in srgb, var(--muted) 58%, var(--ink));
+}
+
+.hero-file-item.is-file,
+.hero-file-item.is-design,
+.hero-file-item.is-image {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.hero-file-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  min-width: 36px;
+}
+
+.hero-file-item.is-loading {
+  background: var(--soft-fill-hover);
+}
+
+.hero-file-item:hover {
+  background: var(--soft-fill);
+  color: var(--ink);
+}
+
+.hero-file-item.active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--ink);
+}
+
+.hero-file-item.active:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+}
+
+.hero-file-item.is-image img {
+  width: 40px;
+  height: 28px;
+  display: block;
+  object-fit: contain;
+  border-radius: 3px;
+  background: var(--soft-fill);
+}
+
+.hero-file-item img.hero-thumb-lazy {
+  opacity: 0;
+}
+
+.hero-file-badge {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--surface-soft) 58%, var(--surface-raised));
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.design-file-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.design-file-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.design-file-icon--compact {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.hero-file-name {
+  min-width: 0;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  transition: color 180ms ease;
+}
+
+.hero-thumb-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--muted) 35%, transparent);
+  border-top-color: var(--accent);
+  animation: thumb-spin 0.7s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hero-file-item:not(.is-loading) .hero-thumb-spinner {
+  display: none;
+}
+
+.hero-file-empty {
+  padding: 12px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.art-image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
+}
+
+.art-generated {
+  width: min(560px, 100%);
+  max-height: 100%;
+  min-height: 0;
+  display: grid;
+  align-content: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 46px;
+  background: transparent;
+}
+
+.art-generated h2 {
+  margin: 0;
+  max-width: 12em;
+  font-size: clamp(26px, 3.8vw, 54px);
+  font-weight: 520;
+  letter-spacing: 0;
+  line-height: 1.04;
+}
+
+.art-generated p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.slideshow-stage.is-preview .hero-artwork {
+  opacity: 0.88;
+}
+
+.project-kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.project-title {
+  margin: 0;
+  font-size: clamp(16px, 1.9vw, 22px);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.project-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 0;
+  max-width: 100%;
+}
+
+.project-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.project-kicker:not(:empty) + .project-meta:not(:empty)::before {
+  content: " · ";
+}
+
+.scan-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 260px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -45%) scale(0.98);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.scan-overlay.active {
+  position: fixed;
+  z-index: 20;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.scan-overlay strong,
+.scan-overlay span {
+  display: block;
+}
+
+.scan-overlay strong {
+  font-size: 13px;
+}
+
+.scan-overlay span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scan-orbit {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: scanSpin 900ms linear infinite;
+}
+
+.splitter {
+  position: relative;
+  cursor: row-resize;
+}
+
+.splitter::before {
+  content: "";
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  top: 50%;
+  height: 1px;
+  background: var(--line);
+  transform: translateY(-50%);
+}
+
+.nav-arrow {
+  position: relative;
+  z-index: 4;
+  top: auto;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+  transform: none;
+}
+
+.nav-arrow-left {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  z-index: 4;
+  transform: translateY(-50%);
+}
+
+.nav-arrow-right {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  z-index: 4;
+  transform: translateY(-50%);
+}
+
+.nav-arrow svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-arrow:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: var(--control-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.nav-arrow-left:hover:not(:disabled),
+.nav-arrow-right:hover:not(:disabled) {
+  transform: translateY(-50%);
+}
+
+.nav-arrow-left:active:not(:disabled),
+.nav-arrow-right:active:not(:disabled) {
+  transform: translateY(calc(-50% + 1px));
+}
+
+.nav-arrow:disabled {
+  opacity: 0.26;
+  cursor: default;
+  box-shadow: none;
+}
+
+.timeline-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  height: 100%;
+  padding: 0 28px 16px;
+  gap: 10px;
+}
+
+.timeline-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: visible;
+}
+
+.heatmap-panel {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--heatmap-panel-width, 196px);
+  min-width: 0;
+  height: 100%;
+  border: none;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms ease;
+}
+
+.heatmap-panel.is-collapsed {
+  --heatmap-panel-width: 0;
+  border-right-color: transparent;
+}
+
+.heatmap-toggle {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  right: -11px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--control-bg);
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: none;
+  transform: translateY(-50%);
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.heatmap-toggle svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.heatmap-panel.is-collapsed .heatmap-toggle svg {
+  transform: rotate(180deg);
+}
+
+.heatmap-toggle:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+.heatmap-panel-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 6px 14px 6px 6px;
+  box-sizing: border-box;
+}
+
+.heatmap-panel.is-collapsed .heatmap-panel-body {
+  display: none;
+}
+
+.heatmap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.heatmap-calendar-single {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 100%;
+}
+
+.heatmap-calendar-single .heatmap-month {
+  margin-top: 0;
+}
+
+.heatmap-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.heatmap-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 4px;
+}
+
+.heatmap-year + .heatmap-year {
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.heatmap-year-label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.heatmap-month + .heatmap-month {
+  margin-top: 10px;
+}
+
+.heatmap-month-label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.heatmap-month-weekdays,
+.heatmap-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, var(--heatmap-cell, 20px));
+  gap: 2px;
+}
+
+.heatmap-month-weekdays {
+  margin-bottom: 10px;
+}
+
+.heatmap-month-weekdays span {
+  display: grid;
+  place-items: center;
+  height: 14px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.heatmap-month-grid {
+  width: max-content;
+}
+
+.heatmap-cell-spacer {
+  width: var(--heatmap-cell, 20px);
+  height: var(--heatmap-cell, 20px);
+}
+
+.heatmap-cell {
+  display: grid;
+  place-items: center;
+  width: var(--heatmap-cell, 20px);
+  height: var(--heatmap-cell, 20px);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: var(--heatmap-level-empty);
+  color: var(--ink);
+  font-size: 9px;
+  line-height: 1;
+  cursor: default;
+}
+
+.heatmap-cell.is-muted {
+  color: color-mix(in srgb, var(--muted) 88%, var(--ink));
+}
+
+.heatmap-cell.is-today {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.heatmap-cell:hover,
+.heatmap-cell.is-hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: scale(1.06);
+}
+
+.heatmap-cell.level-1,
+.heatmap-cell.level-2,
+.heatmap-cell.level-3,
+.heatmap-cell.level-4 {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.heatmap-cell.level-1 {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--ink);
+}
+
+.heatmap-cell.level-2 {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--ink);
+}
+
+.heatmap-cell.level-3 {
+  background: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: var(--ink);
+}
+
+.heatmap-cell.level-4 {
+  background: color-mix(in srgb, var(--accent) 58%, transparent);
+  color: var(--on-accent);
+}
+
+.heatmap-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.heatmap-tooltip {
+  position: fixed;
+  z-index: 30;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.heatmap-tooltip-date {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.heatmap-tooltip-count {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.heatmap-tooltip-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.heatmap-tooltip-list li + li {
+  margin-top: 4px;
+}
+
+.heatmap-tooltip-list li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heatmap-tooltip-more {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.timeline-top {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, auto);
+  align-items: start;
+  gap: 12px 16px;
+  min-height: var(--project-info-height);
+  padding-top: 4px;
+}
+
+.timeline-period-filter {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+}
+
+.timeline-period-select {
+  height: 32px;
+  padding: 0 28px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--control-bg);
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 14px) calc(50% - 2px), calc(100% - 9px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.timeline-period-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.timeline-period-select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+#timelineYearSelect {
+  min-width: 92px;
+}
+
+#timelineMonthSelect {
+  min-width: 76px;
+}
+
+.project-info {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--project-info-height);
+  padding: 0 12px 2px;
+  text-align: center;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.project-info:not(.is-ready) {
+  visibility: hidden;
+}
+
+.timeline-header {
+  position: relative;
+  z-index: 2;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  color: var(--ink);
+  pointer-events: auto;
+}
+
+.timeline-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: min(100%, 520px);
+}
+
+.timeline-tools .timeline-period-select {
+  max-width: 118px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 26px 0 11px;
+  font-size: 12px;
+  line-height: 30px;
+  color: var(--muted);
+}
+
+.timeline-tools .timeline-period-select:hover {
+  color: color-mix(in srgb, var(--muted) 42%, var(--ink));
+}
+
+.timeline-tools .timeline-period-select:focus-visible {
+  color: color-mix(in srgb, var(--muted) 28%, var(--ink));
+}
+
+#scopeFilterSelect,
+#sizeFilterSelect {
+  min-width: 118px;
+}
+
+.ext-filter {
+  position: relative;
+}
+
+.ext-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 118px;
+  max-width: 118px;
+  height: 32px;
+  box-sizing: border-box;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.ext-filter.is-open .ext-filter-trigger {
+  border-color: var(--line-strong);
+  color: color-mix(in srgb, var(--muted) 28%, var(--ink));
+}
+
+.timeline-tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  background-image: none;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.timeline-tool-button svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.timeline-tool-button:hover {
+  border-color: var(--line-strong);
+}
+
+.timeline-tool-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.ext-filter-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 30;
+  display: none;
+  min-width: 220px;
+  max-width: min(300px, calc(100vw - 56px));
+  padding: 4px 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.ext-filter.is-open .ext-filter-panel {
+  display: block;
+}
+
+.ext-filter-special {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ext-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ext-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 22px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ext-filter-option:hover {
+  background: var(--soft-fill-strong);
+}
+
+.ext-filter-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ext-filter-option input {
+  margin: 0;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  accent-color: var(--accent);
+}
+
+.timeline-tools .timeline-period-select:hover,
+.timeline-tools .timeline-tool-button:hover {
+  border-color: var(--line-strong);
+}
+
+.timeline-tools button:hover {
+  border-color: var(--line-strong);
+  box-shadow: none;
+  transform: none;
+}
+
+.timeline {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.timeline-card {
+  position: absolute;
+  top: 52px;
+  width: var(--card-width, 156px);
+  height: var(--card-height, 140px);
+  min-width: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 1;
+  overflow: hidden;
+  transition:
+    width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms ease,
+    z-index 0ms;
+}
+
+.timeline.is-scaling .timeline-card,
+.timeline.is-scaling .thumb {
+  transition: none;
+}
+
+.timeline-card.is-narrow .thumb {
+  height: var(--thumb-height, 88px);
+}
+
+.timeline-card.is-narrow .thumb-meta {
+  margin-top: 6px;
+  min-width: 0;
+}
+
+.timeline-card.is-narrow .thumb-title {
+  font-size: 11px;
+}
+
+.timeline-card.is-narrow .thumb-date {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.timeline-card.is-narrow .timeline-folder-action {
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+}
+
+.timeline-card.is-narrow .timeline-folder-action svg {
+  width: 12px;
+  height: 12px;
+}
+
+.timeline-card.is-minimal {
+  border-radius: 3px;
+}
+
+.timeline-card.is-minimal .thumb {
+  height: var(--thumb-height, 8px);
+  border-radius: 3px;
+}
+
+.timeline-card.is-minimal .thumb-meta {
+  display: none;
+}
+
+.timeline-card.is-minimal .timeline-folder-action {
+  display: none;
+}
+
+.timeline-card.is-minimal:hover {
+  transform: none;
+}
+
+.timeline.dragging {
+  cursor: grabbing;
+}
+
+.timeline-track {
+  position: absolute;
+  inset: 0;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.timeline-track.is-dragging {
+  transition: none;
+}
+
+.timeline-card:hover,
+.timeline-card.is-preview {
+  background: transparent;
+}
+
+.timeline-card.is-preview {
+  z-index: 180;
+}
+
+.timeline-card.active {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  z-index: 160;
+}
+
+.timeline-card.active:hover,
+.timeline-card.active.is-preview {
+  background: transparent;
+}
+
+.timeline-card.active .thumb-title {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.timeline-card.active::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  width: 2px;
+  height: 24px;
+  background: var(--accent);
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.timeline-card.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -23px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+.timeline-axis {
+  position: absolute;
+  left: var(--timeline-padding);
+  right: var(--timeline-padding);
+  top: 30px;
+  height: 1px;
+  background: var(--line);
+}
+
+.tick {
+  position: absolute;
+  top: 27px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--line-strong) 80%, var(--muted));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tick.is-active {
+  top: 26px;
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+}
+
+.tick-label.is-active .tick-day-num,
+.tick-label.is-active .tick-month-num,
+.tick-label.is-active .tick-year-num {
+  color: var(--tick-active);
+  font-weight: 700;
+}
+
+.tick-label.is-active .tick-month-suffix,
+.tick-label.is-active .tick-year-suffix {
+  color: var(--tick-active-muted);
+  font-weight: 600;
+}
+
+.tick-label.is-active {
+  filter: var(--tick-active-shadow);
+}
+
+.tick-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.tick-label-month,
+.tick-label-day {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.tick-month-num {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.tick-month-suffix {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tick-day-num {
+  font-size: 13px;
+  font-weight: 300;
+  color: color-mix(in srgb, var(--muted) 92%, var(--ink));
+  line-height: 1;
+}
+
+.tick-year-num {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.tick-year-suffix {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tick-label-year {
+  padding: 0 8px;
+}
+
+.tick-label-year-month {
+  gap: 5px;
+  padding: 0 4px;
+}
+
+.tick-label-year-month .tick-year-num {
+  font-size: 24px;
+}
+
+.tick-label-year-month .tick-year-suffix {
+  margin-right: 1px;
+}
+
+.tick-label-year-month .tick-month-num {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.tick-label-month .tick-month-num {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.tick-label.tick-label-start {
+  transform: translateX(0);
+}
+
+.tick-label.tick-label-end {
+  transform: translateX(-100%);
+}
+
+.thumb {
+  position: relative;
+  width: 100%;
+  height: var(--thumb-height, 88px);
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+  box-sizing: border-box;
+  transform: none;
+  transform-origin: center bottom;
+  transition:
+    height 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease,
+    background-color 220ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.timeline-folder-action {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  box-shadow: none;
+  transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.timeline-folder-action svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.timeline-card:hover .timeline-folder-action,
+.timeline-card.is-preview .timeline-folder-action,
+.timeline-card:focus-within .timeline-folder-action {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.timeline-folder-action:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.timeline-folder-action[data-mode="copy"] svg rect,
+.timeline-folder-action[data-mode="copy"] svg path {
+  stroke-width: 1.6;
+}
+
+.timeline-card:hover .thumb,
+.timeline-card.is-preview .thumb {
+  background: transparent;
+  border-color: var(--line-strong);
+  transform: scale(1.045);
+}
+
+.timeline-card.active:hover .thumb,
+.timeline-card.active.is-preview .thumb {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+  transform: scale(1.05);
+}
+
+.thumb.is-loading {
+  background: var(--soft-fill-hover);
+}
+
+.thumb.is-loading img {
+  opacity: 0;
+}
+
+.thumb-grid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+}
+
+.thumb-grid--2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+.thumb-grid--3,
+.thumb-grid--4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.thumb-grid--3 .thumb-grid-cell:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.thumb-grid-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 3px;
+  background: var(--overlay-fill);
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.thumb-grid-cell:hover {
+  z-index: 1;
+  background: var(--soft-fill-hover);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 70%, transparent);
+}
+
+.thumb-grid-cell img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.thumb-grid-cell:hover img {
+  transform: scale(1.06);
+}
+
+.thumb-grid-tooltip {
+  position: fixed;
+  z-index: 40;
+  max-width: min(300px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.thumb-grid-tooltip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.thumb-grid-tooltip-dims {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--muted) 35%, transparent);
+  border-top-color: var(--accent);
+  animation: thumb-spin 0.7s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.thumb:not(.is-loading) .thumb-spinner {
+  display: none;
+}
+
+@keyframes thumb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.thumb > img,
+.thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.thumb-placeholder {
+  display: grid;
+  place-items: center;
+  object-fit: none;
+}
+
+.thumb-meta {
+  margin-top: 9px;
+  min-width: 0;
+  overflow: hidden;
+  transform: none;
+}
+
+.thumb-title,
+.thumb-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thumb-title {
+  font-size: 12px;
+}
+
+.thumb-design-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  min-height: 18px;
+  overflow: hidden;
+}
+
+.timeline-card.is-narrow .thumb-design-icons {
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.timeline-card.is-minimal .thumb-design-icons {
+  display: none;
+}
+
+.thumb-date {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+  text-align: center;
+}
+
+.statusbar {
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--statusbar-height);
+  padding: 0 28px;
+  border-top: 1px solid var(--line);
+  background: var(--panel-bg);
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.statusbar-fields {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.8fr) minmax(0, 0.85fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.status-slider {
+  flex: 0 0 136px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  width: 136px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--control-bg);
+  box-sizing: border-box;
+  box-shadow: var(--inset-highlight);
+}
+
+.status-slider[hidden] {
+  display: none;
+}
+
+.status-slider-label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.status-slider input[type="range"] {
+  --slider-progress: 13%;
+  width: 100%;
+  min-width: 0;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.status-slider input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.status-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--slider-fill) 0%,
+    var(--slider-fill) var(--slider-progress),
+    var(--slider-track) var(--slider-progress),
+    var(--slider-track) 100%
+  );
+}
+
+.status-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border: 2px solid var(--surface-raised);
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: var(--slider-thumb-shadow);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.status-slider input[type="range"]:hover:not(:disabled)::-webkit-slider-thumb {
+  transform: scale(1.08);
+  box-shadow: var(--slider-thumb-shadow-hover);
+}
+
+.status-slider input[type="range"]:active:not(:disabled)::-webkit-slider-thumb {
+  transform: scale(1.02);
+}
+
+.status-slider input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--slider-track);
+}
+
+.status-slider input[type="range"]::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--slider-fill);
+}
+
+.status-slider input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--surface-raised);
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: var(--slider-thumb-shadow);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.status-slider input[type="range"]:hover:not(:disabled)::-moz-range-thumb {
+  transform: scale(1.08);
+  box-shadow: var(--slider-thumb-shadow-hover);
+}
+
+.status-slider-value {
+  min-width: 30px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.status-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-cell:empty {
+  display: none;
+}
+
+.statusbar-fields .status-cell:not(:empty) + .status-cell:not(:empty) {
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
+}
+
+.status-path {
+  color: var(--ink);
+}
+
+.status-path.is-copyable {
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.status-path.is-copyable:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-underline-offset: 2px;
+}
+
+.statusbar.is-status-notice .status-path {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.status-file {
+  color: var(--muted);
+}
+
+.status-stats,
+.status-dates {
+  color: var(--muted);
+}
+
+.statusbar.is-preview .status-cell:not(.status-path) {
+  opacity: 0.72;
+}
+
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translateX(22px) scale(0.985);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes scanSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+</style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">DT</span>
+          <span class="brand-name">DesignTrace</span>
+          <span class="brand-version">v0.1.0</span>
+        </div>
+
+        <input id="searchInput" class="search" type="search" placeholder="搜索作品、路径、类型" />
+
+        <div class="toolbar">
+          <button id="pickDirectoryButton" type="button">选择文件夹</button>
+          <button id="rescanButton" type="button">重新扫描</button>
+          <button id="themeButton" class="icon-button" type="button" aria-label="切换主题">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3.75V2m0 20v-1.75M4.58 4.58 3.34 3.34m17.32 17.32-1.24-1.24M3.75 12H2m20 0h-1.75M4.58 19.42l-1.24 1.24M20.66 3.34l-1.24 1.24" />
+              <circle cx="12" cy="12" r="4.2" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="showcase" aria-live="polite">
+        <div id="showcaseLayout" class="showcase-layout">
+          <div class="slideshow-column">
+            <button id="prevButton" class="nav-arrow nav-arrow-left" type="button" aria-label="上一件作品">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 7.5 9 12l5.5 4.5" />
+              </svg>
+            </button>
+            <div id="slideshowStage" class="slideshow-stage">
+              <section id="heroArtwork" class="hero-artwork"></section>
+            </div>
+            <button id="nextButton" class="nav-arrow nav-arrow-right" type="button" aria-label="下一件作品">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9.5 7.5 15 12l-5.5 4.5" />
+              </svg>
+            </button>
+          </div>
+          <aside id="heroFilesPanel" class="hero-files-panel" hidden>
+            <div id="heroThumbs" class="hero-thumbs" aria-label="项目第一层文件列表"></div>
+          </aside>
+        </div>
+
+        <div id="scanOverlay" class="scan-overlay" aria-live="polite">
+          <div class="scan-orbit" aria-hidden="true"></div>
+          <div>
+            <strong>正在扫描</strong>
+            <span id="scanText">读取本地项目结构...</span>
+          </div>
+        </div>
+      </main>
+
+      <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal" aria-label="调整上下区域高度"></div>
+
+      <section class="timeline-panel">
+        <div class="timeline-top">
+          <div class="timeline-period-filter">
+            <select id="timelineYearSelect" class="timeline-period-select" aria-label="年份" disabled>
+              <option value="">年份</option>
+            </select>
+            <select id="timelineMonthSelect" class="timeline-period-select" aria-label="月份" disabled>
+              <option value="">月份</option>
+            </select>
+          </div>
+          <section id="projectInfo" class="project-info" aria-live="polite">
+            <h1 id="heroTitle" class="project-title"></h1>
+            <p class="project-detail">
+              <span id="heroKicker" class="project-kicker"></span><span id="heroMeta" class="project-meta"></span>
+            </p>
+          </section>
+          <div class="timeline-header">
+            <div class="timeline-tools">
+              <select id="scopeFilterSelect" class="timeline-period-select" aria-label="范围筛选">
+                <option value="all">全部</option>
+                <option value="sameParent">同父文件夹</option>
+                <option value="sameRoot">同根目录</option>
+                <option value="topLevel">仅顶层</option>
+                <option value="nested">仅子文件夹</option>
+              </select>
+              <div id="extFilter" class="ext-filter">
+                <button
+                  id="extFilterTrigger"
+                  class="ext-filter-trigger timeline-period-select"
+                  type="button"
+                  aria-label="后缀筛选，可多选"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="extFilterPanel"
+                >
+                  全部后缀
+                </button>
+                <div id="extFilterPanel" class="ext-filter-panel" role="listbox" aria-multiselectable="true">
+                  <div id="extFilterMenu" class="ext-filter-menu"></div>
+                </div>
+              </div>
+              <select id="sizeFilterSelect" class="timeline-period-select" aria-label="图片大小筛选">
+                <option value="all">全部大小</option>
+                <option value="hideSmall">隐藏小图</option>
+                <option value="medium">≥512KB</option>
+                <option value="large">≥2MB</option>
+              </select>
+              <button id="autoplayButton" class="play-button timeline-autoplay-button" type="button" aria-label="播放时间轴">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="play-icon" d="M10 8.2v7.6l6.4-3.8L10 8.2Z" />
+                  <path class="pause-icon" d="M8 7h3.2v10H8V7zm4.8 0H16v10h-3.2V7Z" />
+                </svg>
+              </button>
+              <button
+                id="slideshowFullscreenButton"
+                class="timeline-slideshow-fullscreen-button"
+                type="button"
+                aria-label="幻灯片全屏"
+                aria-pressed="false"
+                disabled
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 5H5v3M16 5h3v3M8 19H5v-3M16 19h3v-3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-body">
+          <aside id="heatmapPanel" class="heatmap-panel" aria-label="项目活跃热力图">
+            <div class="heatmap-panel-body">
+              <div id="heatmap" class="heatmap" role="application" aria-label="按月浏览项目活动日历"></div>
+            </div>
+            <button
+              id="heatmapToggle"
+              class="heatmap-toggle"
+              type="button"
+              aria-label="折叠热力图"
+              aria-expanded="true"
+              aria-controls="heatmap"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 7.5 9 12l5.5 4.5" />
+              </svg>
+            </button>
+          </aside>
+          <div id="timeline" class="timeline" tabindex="0"></div>
+        </div>
+        <div id="heatmapTooltip" class="heatmap-tooltip" role="tooltip" hidden></div>
+        <div id="thumbGridTooltip" class="thumb-grid-tooltip" role="tooltip" hidden></div>
+      </section>
+
+      <footer class="statusbar" aria-live="polite">
+        <div class="statusbar-fields">
+          <div id="statusPath" class="status-cell status-path">选择一个文件夹，开始留下创作轨迹。</div>
+          <div id="statusFile" class="status-cell status-file"></div>
+          <div id="statusStats" class="status-cell status-stats"></div>
+          <div id="statusDates" class="status-cell status-dates"></div>
+        </div>
+        <div id="statusSliderCell" class="status-slider" hidden>
+          <span class="status-slider-label">缩放</span>
+          <input id="statusSlider" type="range" min="0" max="100" value="13" step="1" aria-label="时间轴缩放" disabled />
+          <span id="statusSliderValue" class="status-slider-value" aria-hidden="true">100%</span>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+﻿(function () {
+  "use strict";
+
+  var state = {
+    files: null,
+    rootHandle: null,
+    projects: [],
+    filtered: [],
+    selectedIndex: 0,
+    hoverIndex: null,
+    rootName: "",
+    timelineOffset: 0,
+    timelineScale: 1,
+    dragging: false,
+    splitterDragging: false,
+    dragStartX: 0,
+    dragStartOffset: 0,
+    autoplay: null,
+    autoplayEnabled: false,
+    timelineHovering: false,
+    dragPointerId: null,
+    dragMoved: false,
+    scopeFilter: "all",
+    extFilter: ["all"],
+    sizeFilter: "all",
+    anchorProjectId: "",
+    objectUrlCache: new Map(),
+    thumbUrlCache: new Map(),
+    thumbUrlPending: new Map(),
+    imageDimsCache: new Map(),
+    imageDimsPending: new Map(),
+    thumbGridHoverCell: null,
+    statusMessage: "",
+    previewPath: "",
+    previewProjectId: "",
+    heroCurrentFile: null,
+    heroImageDims: null,
+    timelineRenderGeneration: 0,
+    timelineTimeRangeCache: null,
+    lastDragReleaseAt: 0,
+    timelineHoverLockUntil: 0,
+    heatmapCollapsed: false,
+    heatmapHoverDay: "",
+    heatmapViewYear: null,
+    heatmapViewMonth: null,
+    timelinePeriodSyncLock: false,
+    scanning: false,
+    slideshowFullscreen: false,
+    collapsedHeroFileGroups: new Set()
+  };
+
+  var timelineLayoutFrame = null;
+  var visibleCardsFrame = null;
+  var visibleCardsTimer = null;
+  var scalingClassTimer = null;
+  var heroPreviewTimer = null;
+  var heroRenderGeneration = 0;
+  var HERO_PREVIEW_DELAY = 90;
+  var HERO_PREVIEW_MAX_WIDTH = 960;
+  var HERO_MAX_WIDTH = 1920;
+  var HERO_THUMB_MAX_WIDTH = 240;
+  var TIMELINE_VISIBLE_BUFFER = 4;
+  var TIMELINE_VIRTUALIZE_MIN = 120;
+  var TIMELINE_THUMB_MAX_IMAGES = 4;
+  var HEATMAP_TOOLTIP_LIMIT = 8;
+  var HEATMAP_WHEEL_COOLDOWN = 120;
+  var scanUiLastAt = 0;
+  var heatmapWheelLock = false;
+  var heroImageLoadWaiters = [];
+  var heroArtworkLoadingGen = null;
+  var AUTOPLAY_INTERVAL = 2400;
+  var AUTOPLAY_HOVER_RETRY = 400;
+
+  var els = {
+    pickDirectoryButton: document.getElementById("pickDirectoryButton"),
+    rescanButton: document.getElementById("rescanButton"),
+    searchInput: document.getElementById("searchInput"),
+    themeButton: document.getElementById("themeButton"),
+    prevButton: document.getElementById("prevButton"),
+    nextButton: document.getElementById("nextButton"),
+    showcaseLayout: document.getElementById("showcaseLayout"),
+    slideshowStage: document.getElementById("slideshowStage"),
+    heroFilesPanel: document.getElementById("heroFilesPanel"),
+    heroArtwork: document.getElementById("heroArtwork"),
+    heroThumbs: document.getElementById("heroThumbs"),
+    projectInfo: document.getElementById("projectInfo"),
+    heroKicker: document.getElementById("heroKicker"),
+    heroTitle: document.getElementById("heroTitle"),
+    heroMeta: document.getElementById("heroMeta"),
+    scanOverlay: document.getElementById("scanOverlay"),
+    scanText: document.getElementById("scanText"),
+    timeline: document.getElementById("timeline"),
+    timelineYearSelect: document.getElementById("timelineYearSelect"),
+    timelineMonthSelect: document.getElementById("timelineMonthSelect"),
+    heatmapPanel: document.getElementById("heatmapPanel"),
+    heatmapToggle: document.getElementById("heatmapToggle"),
+    heatmap: document.getElementById("heatmap"),
+    heatmapTooltip: document.getElementById("heatmapTooltip"),
+    thumbGridTooltip: document.getElementById("thumbGridTooltip"),
+    autoplayButton: document.getElementById("autoplayButton"),
+    slideshowFullscreenButton: document.getElementById("slideshowFullscreenButton"),
+    scopeFilterSelect: document.getElementById("scopeFilterSelect"),
+    extFilter: document.getElementById("extFilter"),
+    extFilterTrigger: document.getElementById("extFilterTrigger"),
+    extFilterPanel: document.getElementById("extFilterPanel"),
+    extFilterMenu: document.getElementById("extFilterMenu"),
+    sizeFilterSelect: document.getElementById("sizeFilterSelect"),
+    splitter: document.getElementById("splitter"),
+    statusbar: document.querySelector(".statusbar"),
+    statusSliderCell: document.getElementById("statusSliderCell"),
+    statusSlider: document.getElementById("statusSlider"),
+    statusSliderValue: document.getElementById("statusSliderValue"),
+    statusPath: document.getElementById("statusPath"),
+    statusFile: document.getElementById("statusFile"),
+    statusStats: document.getElementById("statusStats"),
+    statusDates: document.getElementById("statusDates"),
+    appShell: document.querySelector(".app-shell")
+  };
+
+  var IGNORE_NAMES = new Set([".git", "node_modules", "dist", "build", ".next", ".nuxt", ".cache", "coverage", "target", "vendor", "venv", ".venv", "__pycache__"]);
+  var PREVIEW_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".html"]);
+  var IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]);
+  var CODE_EXTENSIONS = new Set([".js", ".ts", ".tsx", ".jsx", ".vue", ".svelte", ".py", ".rs", ".go", ".java", ".cs", ".cpp", ".c", ".html", ".css"]);
+  var DESIGN_SOURCE_EXTENSIONS = new Set([
+    ".cdr", ".psd", ".ai", ".eps", ".pptx", ".ppt", ".indd", ".xd", ".sketch", ".afdesign"
+  ]);
+  var DESIGN_ICON_ORDER = [".psd", ".ai", ".cdr", ".ppt", ".eps", ".indd", ".xd", ".sketch", ".afdesign"];
+
+  function normalizeDesignExtension(ext) {
+    if (!ext) return "";
+    var value = ext.toLowerCase();
+    if (value === ".pptx") return ".ppt";
+    return value;
+  }
+
+  function isDesignSourceExtension(ext) {
+    return DESIGN_SOURCE_EXTENSIONS.has(ext) || ext === ".pptx";
+  }
+
+  function designFileIconSvg(ext) {
+    var key = normalizeDesignExtension(ext);
+    if (key === ".psd") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#001e36"/><text x="16" y="21" text-anchor="middle" fill="#31a8ff" font-size="12" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Ps</text></svg>';
+    }
+    if (key === ".ai") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#330000"/><text x="16" y="21" text-anchor="middle" fill="#ff9a00" font-size="12" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Ai</text></svg>';
+    }
+    if (key === ".cdr") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#008043"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="Segoe UI, Arial, sans-serif">CDR</text></svg>';
+    }
+    if (key === ".ppt") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#d24726"/><text x="16" y="21" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="Segoe UI, Arial, sans-serif">P</text></svg>';
+    }
+    if (key === ".eps") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#2f2f2f"/><text x="16" y="20" text-anchor="middle" fill="#f5f5f5" font-size="9" font-weight="700" font-family="Segoe UI, Arial, sans-serif">EPS</text></svg>';
+    }
+    if (key === ".indd") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#49021f"/><text x="16" y="20" text-anchor="middle" fill="#ff3366" font-size="8" font-weight="700" font-family="Segoe UI, Arial, sans-serif">INDD</text></svg>';
+    }
+    if (key === ".xd") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#470137"/><text x="16" y="21" text-anchor="middle" fill="#ff61f6" font-size="12" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Xd</text></svg>';
+    }
+    if (key === ".sketch") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#fdb300"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="Segoe UI, Arial, sans-serif">SK</text></svg>';
+    }
+    if (key === ".afdesign") {
+      return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#1b72e8"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="Segoe UI, Arial, sans-serif">AF</text></svg>';
+    }
+    var label = key.replace(".", "").toUpperCase().slice(0, 4);
+    return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#4a4a4a"/><text x="16" y="20" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="Segoe UI, Arial, sans-serif">' + escapeHtml(label) + "</text></svg>";
+  }
+
+  function designFileIconHtml(ext, extraClass) {
+    var key = normalizeDesignExtension(ext);
+    var label = key.replace(".", "").toUpperCase();
+    var className = "design-file-icon design-file-icon--" + key.slice(1);
+    if (extraClass) className += " " + extraClass;
+    return '<span class="' + className + '" title="' + escapeHtml(label) + '">' + designFileIconSvg(ext) + "</span>";
+  }
+
+  function projectDesignExtensions(project) {
+    if (!project || !project.extensions) return [];
+    var available = new Set();
+    project.extensions.forEach(function (ext) {
+      if (isDesignSourceExtension(ext)) available.add(normalizeDesignExtension(ext));
+    });
+    var ordered = DESIGN_ICON_ORDER.filter(function (ext) {
+      return available.has(ext);
+    });
+    available.forEach(function (ext) {
+      if (ordered.indexOf(ext) < 0) ordered.push(ext);
+    });
+    return ordered;
+  }
+
+  function timelineDesignIconsMarkup(project) {
+    var types = projectDesignExtensions(project);
+    if (!types.length) return "";
+    return '<div class="thumb-design-icons">' + types.map(function (ext) {
+      return designFileIconHtml(ext, "design-file-icon--compact");
+    }).join("") + "</div>";
+  }
+
+  function updateShowcaseLayout(hasSidePanel) {
+    var showPanel = !!hasSidePanel && !state.scanning;
+    if (els.showcaseLayout) {
+      els.showcaseLayout.classList.toggle("has-files-panel", showPanel);
+    }
+    if (els.heroFilesPanel) {
+      els.heroFilesPanel.hidden = !showPanel;
+    }
+  }
+  var TYPE_RULES = [
+    ["package.json", "Web / Node", 40],
+    ["vite.config.js", "Vite App", 20],
+    ["next.config.js", "Next.js App", 24],
+    ["index.html", "Static Web", 24],
+    ["pyproject.toml", "Python", 36],
+    ["requirements.txt", "Python", 26],
+    ["Cargo.toml", "Rust", 36],
+    ["go.mod", "Go", 36],
+    ["pom.xml", "Java", 34],
+    ["build.gradle", "Java / Gradle", 34],
+    ["README.md", "Documented Project", 14]
+  ];
+
+  var TIMELINE = {
+    cardWidth: 156,
+    cardGap: 24,
+    minStep: 8,
+    minimalWidth: 32,
+    padding: 168,
+    metaHeight: 68,
+    minThumbHeight: 24,
+    minThumbHeightMinimal: 8,
+    scaleMin: 0.1,
+    scaleMax: 3,
+    scaleSteps: 100
+  };
+  var MAX_FOLDER_DEPTH = 6;
+  var IMAGE_SIZE = {
+    small: 80 * 1024,
+    medium: 512 * 1024,
+    large: 2 * 1024 * 1024
+  };
+
+  function formatDate(value, compact) {
+    if (!value) return "鏈煡鏃堕棿";
+    var options = compact
+      ? { year: "numeric", month: "2-digit", day: "2-digit" }
+      : { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" };
+    return new Intl.DateTimeFormat("zh-CN", options).format(new Date(value));
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes) return "0 B";
+    var units = ["B", "KB", "MB", "GB", "TB"];
+    var size = bytes;
+    var unit = 0;
+    while (size >= 1024 && unit < units.length - 1) {
+      size /= 1024;
+      unit += 1;
+    }
+    return size.toFixed(size >= 10 || unit === 0 ? 0 : 1) + " " + units[unit];
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function formatDisplayPath(path) {
+    if (!path) return "";
+    return String(path).replace(/\//g, "\\");
+  }
+
+  function extension(fileName) {
+    var index = fileName.lastIndexOf(".");
+    return index >= 0 ? fileName.slice(index).toLowerCase() : "";
+  }
+
+  function hashText(value) {
+    var hash = 2166136261;
+    for (var index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16);
+  }
+
+  function normalizeYear(value, digits) {
+    if (digits >= 4) return value;
+    return 2000 + value;
+  }
+
+  function makeCalendarDate(year, month, day) {
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    var date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+    return date;
+  }
+
+  function resolveYearFromPath(relativePath, rootName) {
+    var segments = relativePath.split("/").filter(Boolean);
+    if (segments.length) segments.pop();
+    var candidates = segments.slice().reverse().concat([rootName]);
+    for (var index = 0; index < candidates.length; index += 1) {
+      var segment = candidates[index];
+      var fullYear = segment.match(/^#?(\d{4})年?$/);
+      if (fullYear) return parseInt(fullYear[1], 10);
+      var shortYear = segment.match(/^#?(\d{2})年?$/);
+      if (shortYear) return normalizeYear(parseInt(shortYear[1], 10), 2);
+      var parsed = parseFolderDate(segment, segment, rootName);
+      if (parsed && parsed.source === "name-full") {
+        return new Date(parsed.iso).getFullYear();
+      }
+    }
+    return null;
+  }
+
+  function parseFolderDate(folderName, relativePath, rootName) {
+    var name = String(folderName || "").trim();
+    if (!name) return null;
+
+    var cnFull = name.match(/^(\d{2}|\d{4})年(\d{1,2})月(\d{1,2})(?:日|号)?(?=\s|$|[-_.])/);
+    if (cnFull) {
+      var cnYear = normalizeYear(parseInt(cnFull[1], 10), cnFull[1].length);
+      var cnDate = makeCalendarDate(cnYear, parseInt(cnFull[2], 10), parseInt(cnFull[3], 10));
+      if (cnDate) return { iso: cnDate.toISOString(), source: "name-full" };
+    }
+
+    var numFull = name.match(/^(\d{2}|\d{4})[-.\s](\d{1,2})[-.\s](\d{1,2})(?=\s|$|[-_.])/);
+    if (numFull) {
+      var numYear = normalizeYear(parseInt(numFull[1], 10), numFull[1].length);
+      var numDate = makeCalendarDate(numYear, parseInt(numFull[2], 10), parseInt(numFull[3], 10));
+      if (numDate) return { iso: numDate.toISOString(), source: "name-full" };
+    }
+
+    var cnMonthDay = name.match(/^(\d{1,2})月(\d{1,2})(?:日|号)?(?=\s|$|[-_.])/);
+    if (cnMonthDay) {
+      var cnPathYear = resolveYearFromPath(relativePath, rootName);
+      if (cnPathYear) {
+        var cnMdDate = makeCalendarDate(cnPathYear, parseInt(cnMonthDay[1], 10), parseInt(cnMonthDay[2], 10));
+        if (cnMdDate) return { iso: cnMdDate.toISOString(), source: "name-month-day" };
+      }
+      return null;
+    }
+
+    var numMonthDay = name.match(/^(\d{1,2})[-.\s](\d{1,2})(?=\s|$|[-_.])/);
+    if (numMonthDay && parseInt(numMonthDay[1], 10) <= 12) {
+      var mdYear = resolveYearFromPath(relativePath, rootName);
+      if (mdYear) {
+        var mdDate = makeCalendarDate(mdYear, parseInt(numMonthDay[1], 10), parseInt(numMonthDay[2], 10));
+        if (mdDate) return { iso: mdDate.toISOString(), source: "name-month-day" };
+      }
+      return null;
+    }
+
+    return null;
+  }
+
+  function parseSerialProjectName(folderName) {
+    var match = String(folderName || "").trim().match(/^(\d{3,4})\s+(.+)$/);
+    if (!match) return null;
+    return {
+      serial: parseInt(match[1], 10),
+      title: match[2].trim()
+    };
+  }
+
+  function resolveBucketTiming(bucket) {
+    if (bucket.designSourceTimes.length) {
+      var minTime = Math.min.apply(null, bucket.designSourceTimes);
+      var maxTime = Math.max.apply(null, bucket.designSourceTimes);
+      return {
+        createdAt: toIso(minTime),
+        modifiedAt: toIso(maxTime),
+        lastActiveAt: toIso(maxTime),
+        source: "design-source"
+      };
+    }
+    if (bucket.fileCount > 0 && bucket.latestModified > 0) {
+      var earliest = bucket.earliestModified === Number.POSITIVE_INFINITY
+        ? bucket.latestModified
+        : bucket.earliestModified;
+      return {
+        createdAt: toIso(earliest),
+        modifiedAt: toIso(bucket.latestModified),
+        lastActiveAt: toIso(bucket.latestModified),
+        source: "file-modified"
+      };
+    }
+    if (bucket.folderDate) {
+      return {
+        createdAt: bucket.folderDate,
+        modifiedAt: bucket.folderDate,
+        lastActiveAt: bucket.folderDate,
+        source: bucket.folderDateSource || "folder-name"
+      };
+    }
+    return null;
+  }
+
+  function projectTimelineDate(project) {
+    return new Date(project.lastActiveAt || project.modifiedAt || project.createdAt || 0);
+  }
+
+  function compareProjectsByTimeline(a, b) {
+    var timeA = projectTimelineDate(a).getTime();
+    var timeB = projectTimelineDate(b).getTime();
+    var validA = Number.isFinite(timeA) && timeA > 0;
+    var validB = Number.isFinite(timeB) && timeB > 0;
+    if (validA && validB && timeA !== timeB) return timeA - timeB;
+    if (validA && !validB) return -1;
+    if (!validA && validB) return 1;
+    return (a.serial || 0) - (b.serial || 0);
+  }
+
+  function projectDisplayTitle(project) {
+    return project.title || project.name;
+  }
+
+  function isLayerOneRelativePath(relativePath) {
+    return relativePath.indexOf("/") < 0 || relativePath.split("/").filter(Boolean).length === 2;
+  }
+
+  var ROOT_FOLDER_LABEL = "项目根目录";
+
+  function sortHeroFileGroupLabels(labels) {
+    return labels.slice().sort(function (a, b) {
+      if (a === ROOT_FOLDER_LABEL) return -1;
+      if (b === ROOT_FOLDER_LABEL) return 1;
+      return a.localeCompare(b, "zh-CN");
+    });
+  }
+
+  function layerOneFolderLabel(relativePath) {
+    var segments = relativePath.split("/").filter(Boolean);
+    if (segments.length <= 1) return ROOT_FOLDER_LABEL;
+    return segments[0];
+  }
+
+  function revokeObjectUrls() {
+    state.objectUrlCache.forEach(function (url) {
+      URL.revokeObjectURL(url);
+    });
+    state.objectUrlCache.clear();
+    state.thumbUrlCache.forEach(function (url) {
+      URL.revokeObjectURL(url);
+    });
+    state.thumbUrlCache.clear();
+    state.thumbUrlPending.clear();
+    state.imageDimsCache.clear();
+    state.imageDimsPending.clear();
+  }
+
+  var THUMB_MAX_WIDTH = 360;
+
+  function scaledImageUrl(file, cacheKey, maxWidth, jpegQuality) {
+    jpegQuality = jpegQuality || 0.82;
+    var baseKey = cacheKey || file.name + ":" + file.lastModified + ":" + file.size;
+    var key = baseKey + "@" + maxWidth;
+    if (state.thumbUrlCache.has(key)) {
+      return Promise.resolve(state.thumbUrlCache.get(key));
+    }
+    if (state.thumbUrlPending.has(key)) {
+      return state.thumbUrlPending.get(key);
+    }
+    if (typeof createImageBitmap !== "function") {
+      var fallback = objectUrl(file, cacheKey);
+      state.thumbUrlCache.set(key, fallback);
+      return Promise.resolve(fallback);
+    }
+    var promise = createImageBitmap(file, { resizeWidth: maxWidth, resizeQuality: "medium" })
+      .then(function (bitmap) {
+        var canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        return new Promise(function (resolve) {
+          canvas.toBlob(function (blob) {
+            if (!blob) {
+              resolve(objectUrl(file, cacheKey));
+              return;
+            }
+            var url = URL.createObjectURL(blob);
+            state.thumbUrlCache.set(key, url);
+            resolve(url);
+          }, "image/jpeg", jpegQuality);
+        });
+      })
+      .catch(function () {
+        var url = objectUrl(file, cacheKey);
+        state.thumbUrlCache.set(key, url);
+        return url;
+      })
+      .finally(function () {
+        state.thumbUrlPending.delete(key);
+      });
+    state.thumbUrlPending.set(key, promise);
+    return promise;
+  }
+
+  function thumbUrl(file, cacheKey) {
+    return scaledImageUrl(file, cacheKey, THUMB_MAX_WIDTH);
+  }
+
+  function heroImageUrl(file, cacheKey, hoverPreview) {
+    return scaledImageUrl(
+      file,
+      cacheKey,
+      hoverPreview ? HERO_PREVIEW_MAX_WIDTH : HERO_MAX_WIDTH,
+      hoverPreview ? 0.78 : 0.85
+    );
+  }
+
+  function ensureImageDimensions(file, cacheKey) {
+    var key = cacheKey || file.name + ":" + file.lastModified + ":" + file.size;
+    if (state.imageDimsCache.has(key)) {
+      return Promise.resolve(state.imageDimsCache.get(key));
+    }
+    if (state.imageDimsPending.has(key)) {
+      return state.imageDimsPending.get(key);
+    }
+    if (typeof createImageBitmap !== "function") {
+      return Promise.resolve(null);
+    }
+    var promise = createImageBitmap(file)
+      .then(function (bitmap) {
+        var dims = { w: bitmap.width, h: bitmap.height };
+        bitmap.close();
+        state.imageDimsCache.set(key, dims);
+        return dims;
+      })
+      .catch(function () {
+        return null;
+      })
+      .finally(function () {
+        state.imageDimsPending.delete(key);
+      });
+    state.imageDimsPending.set(key, promise);
+    return promise;
+  }
+
+  function formatImagePixelLabel(dims) {
+    if (!dims || !dims.w || !dims.h) return "—";
+    return dims.w + " × " + dims.h + " px";
+  }
+
+  function hideThumbGridTooltip() {
+    state.thumbGridHoverCell = null;
+    if (!els.thumbGridTooltip) return;
+    els.thumbGridTooltip.hidden = true;
+    els.thumbGridTooltip.innerHTML = "";
+  }
+
+  function positionThumbGridTooltip(cell) {
+    if (!els.thumbGridTooltip || els.thumbGridTooltip.hidden || !cell) return;
+    var rect = cell.getBoundingClientRect();
+    var tooltipRect = els.thumbGridTooltip.getBoundingClientRect();
+    var left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    var top = rect.top - tooltipRect.height - 8;
+    if (top < 8) top = rect.bottom + 8;
+    left = Math.max(8, Math.min(window.innerWidth - tooltipRect.width - 8, left));
+    top = Math.max(8, Math.min(window.innerHeight - tooltipRect.height - 8, top));
+    els.thumbGridTooltip.style.left = left + "px";
+    els.thumbGridTooltip.style.top = top + "px";
+  }
+
+  function renderThumbGridTooltip(file, dims) {
+    var dimsText = dims ? formatImagePixelLabel(dims) : "读取中…";
+    return [
+      '<div class="thumb-grid-tooltip-name">' + escapeHtml(file.name) + "</div>",
+      '<div class="thumb-grid-tooltip-dims">' + escapeHtml(dimsText) + "</div>"
+    ].join("");
+  }
+
+  function showThumbGridTooltip(cell, file) {
+    if (!els.thumbGridTooltip || !cell || !file) return;
+    state.thumbGridHoverCell = cell;
+    var cacheKey = file.path;
+    var dims = state.imageDimsCache.get(cacheKey) || null;
+    els.thumbGridTooltip.innerHTML = renderThumbGridTooltip(file, dims);
+    els.thumbGridTooltip.hidden = false;
+    requestAnimationFrame(function () {
+      positionThumbGridTooltip(cell);
+    });
+    if (dims || !file.file) return;
+    ensureImageDimensions(file.file, cacheKey).then(function (loaded) {
+      if (state.thumbGridHoverCell !== cell || !els.thumbGridTooltip || els.thumbGridTooltip.hidden) return;
+      els.thumbGridTooltip.innerHTML = renderThumbGridTooltip(file, loaded);
+      positionThumbGridTooltip(cell);
+    });
+  }
+
+  function bindThumbGridTooltipEvents(card, project) {
+    var thumbGrid = card.querySelector(".thumb-grid");
+    if (!thumbGrid) return;
+    var images = timelineDisplayImages(project);
+    thumbGrid.addEventListener("mouseover", function (event) {
+      var cell = event.target.closest(".thumb-grid-cell");
+      if (!cell || !thumbGrid.contains(cell)) return;
+      var cells = thumbGrid.querySelectorAll(".thumb-grid-cell");
+      var index = Array.prototype.indexOf.call(cells, cell);
+      var file = images[index];
+      if (!file) return;
+      showThumbGridTooltip(cell, file);
+    });
+    thumbGrid.addEventListener("mouseleave", function (event) {
+      var related = event.relatedTarget;
+      if (related && thumbGrid.contains(related)) return;
+      hideThumbGridTooltip();
+    });
+  }
+
+  function scheduleImageDimensions(file, cacheKey, onReady) {
+    var run = function () {
+      ensureImageDimensions(file, cacheKey).then(function (dims) {
+        if (dims && typeof onReady === "function") onReady(dims);
+      });
+    };
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(run, { timeout: 2000 });
+    } else {
+      setTimeout(run, 0);
+    }
+  }
+
+  function invalidateHeroImageLoad() {
+    heroRenderGeneration += 1;
+    heroArtworkLoadingGen = null;
+    resolveHeroImageLoadWaiters();
+  }
+
+  function objectUrl(file, cacheKey) {
+    var key = cacheKey || file.name + ":" + file.lastModified + ":" + file.size;
+    if (state.objectUrlCache.has(key)) {
+      return state.objectUrlCache.get(key);
+    }
+    var url = URL.createObjectURL(file);
+    state.objectUrlCache.set(key, url);
+    return url;
+  }
+
+  function openStore() {
+    return new Promise(function (resolve, reject) {
+      var request = indexedDB.open("DesignTrace", 1);
+      request.onupgradeneeded = function () {
+        request.result.createObjectStore("settings");
+      };
+      request.onsuccess = function () {
+        resolve(request.result);
+      };
+      request.onerror = function () {
+        reject(request.error);
+      };
+    });
+  }
+
+  async function saveSetting(key, value) {
+    var db = await openStore();
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction("settings", "readwrite");
+      tx.objectStore("settings").put(value, key);
+      tx.oncomplete = resolve;
+      tx.onerror = function () {
+        reject(tx.error);
+      };
+    });
+  }
+
+  async function loadSetting(key) {
+    var db = await openStore();
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction("settings", "readonly");
+      var request = tx.objectStore("settings").get(key);
+      request.onsuccess = function () {
+        resolve(request.result);
+      };
+      request.onerror = function () {
+        reject(request.error);
+      };
+    });
+  }
+
+  function applyTheme(theme) {
+    if (theme === "light" || theme === "dark") {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("designtrace:theme", theme);
+      els.themeButton.setAttribute("aria-label", theme === "dark" ? "切换到浅色主题" : "切换到深色主题");
+      return;
+    }
+    delete document.documentElement.dataset.theme;
+    localStorage.removeItem("designtrace:theme");
+    els.themeButton.setAttribute("aria-label", "切换主题");
+  }
+
+  function toggleTheme() {
+    var explicit = document.documentElement.dataset.theme;
+    var systemDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var current = explicit || (systemDark ? "dark" : "light");
+    applyTheme(current === "dark" ? "light" : "dark");
+  }
+
+  function updateFolderTooltip() {
+    var text = state.rootName
+      ? "当前文件夹：" + state.rootName + "\n项目相对路径：" + formatDisplayPath(state.rootName + "/...") + "\n浏览器出于安全考虑不会暴露完整磁盘路径。"
+      : "尚未选择文件夹。\n点击后浏览器会请求查看本地文件夹权限。";
+    els.pickDirectoryButton.dataset.tooltip = text;
+    els.pickDirectoryButton.title = text;
+  }
+
+  async function pickDirectory() {
+    if ("showDirectoryPicker" in window) {
+      try {
+        state.rootHandle = await window.showDirectoryPicker({ mode: "read" });
+        state.files = null;
+        try {
+          await saveSetting("rootHandle", state.rootHandle);
+        } catch (error) {
+          setStatus("已获得目录权限，但当前浏览器没有保存缓存。");
+        }
+        await scanDirectoryHandle(state.rootHandle, "已保存，下次刷新会自动恢复。");
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") return;
+      }
+    }
+    setStatus("当前浏览器不支持目录授权。请使用 Chrome 或 Edge，并通过 localhost 打开。");
+  }
+
+  async function rescan() {
+    if (state.rootHandle) {
+      await scanDirectoryHandle(state.rootHandle, "已重新扫描。");
+      return;
+    }
+    setStatus("还没有选择文件夹。");
+  }
+
+  async function scanDirectoryHandle(rootHandle, doneMessage) {
+    try {
+      revokeObjectUrls();
+      state.rootHandle = rootHandle;
+      state.rootName = rootHandle.name;
+      updateFolderTooltip();
+      setScanning(true, "准备读取 " + rootHandle.name + "...");
+      setStatus("正在扫描 " + rootHandle.name + "...");
+
+      var buckets = new Map();
+      for await (var entry of rootHandle.values()) {
+        if (entry.kind !== "directory" || IGNORE_NAMES.has(entry.name)) continue;
+        await registerTopLevelFolderProject(entry, rootHandle.name, entry.name, buckets);
+      }
+
+      state.projects = Array.from(buckets.values()).map(toProject).filter(Boolean);
+      setScanning(false);
+      finishScan(doneMessage || "扫描完成。");
+    } catch (error) {
+      setStatus("扫描失败，可以重新选择文件夹。");
+      throw error;
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function registerTopLevelFolderProject(directoryHandle, rootName, relativePath, buckets) {
+    var folderName = directoryHandle.name;
+    var parsedDate = parseFolderDate(folderName, relativePath, rootName);
+    var path = rootName + "/" + relativePath;
+    if (buckets.has(path)) return;
+
+    setScanProgress("正在分析 " + formatDisplayPath(relativePath) + "...");
+    var bucket = createBucket(folderName, path, rootName, relativePath);
+    bucket.directoryHandle = directoryHandle;
+    if (parsedDate) {
+      bucket.folderDate = parsedDate.iso;
+      bucket.folderDateSource = parsedDate.source;
+    }
+    await addDirectoryToBucket(bucket, directoryHandle, "", 0);
+    buckets.set(path, bucket);
+  }
+
+  async function addDirectoryToBucket(bucket, directoryHandle, basePath, depth) {
+    if (depth > MAX_FOLDER_DEPTH) return;
+    for await (var entry of directoryHandle.values()) {
+      if (entry.kind === "directory") {
+        if (IGNORE_NAMES.has(entry.name)) continue;
+        bucket.dirNames.add((basePath ? basePath + "/" : "") + entry.name);
+        await addDirectoryToBucket(bucket, entry, (basePath ? basePath + "/" : "") + entry.name, depth + 1);
+        continue;
+      }
+      var file = await entry.getFile();
+      addFileToBucket(bucket, file, (basePath ? basePath + "/" : "") + entry.name);
+    }
+  }
+
+  function finishScan(message) {
+    var lastSelectedId = localStorage.getItem("designtrace:selectedProjectId");
+    state.projects.sort(compareProjectsByTimeline);
+    state.selectedIndex = 0;
+    state.timelineOffset = 0;
+    state.heatmapViewYear = null;
+    state.heatmapViewMonth = null;
+    if (lastSelectedId) state.anchorProjectId = lastSelectedId;
+    requestAnimationFrame(function () {
+      updateExtensionFilterOptions();
+      applyFilters();
+      if (!lastSelectedId && state.filtered.length) {
+        state.selectedIndex = state.filtered.length - 1;
+      }
+      ensureAutoplay();
+      if (state.filtered[state.selectedIndex]) {
+        state.anchorProjectId = state.filtered[state.selectedIndex].id;
+      }
+      state.statusMessage = "";
+      centerActiveThumb(false);
+    });
+  }
+
+  function createBucket(name, path, parentPath, relativePath) {
+    return {
+      name: name,
+      path: path,
+      parentPath: parentPath,
+      relativePath: relativePath || name,
+      fileNames: new Set(),
+      dirNames: new Set(),
+      previews: [],
+      recentFiles: [],
+      layerOneFiles: [],
+      designSourceTimes: [],
+      folderDate: null,
+      folderDateSource: null,
+      fileCount: 0,
+      sizeBytes: 0,
+      latestModified: 0,
+      earliestModified: Number.POSITIVE_INFINITY,
+      imageCount: 0,
+      codeCount: 0,
+      designSourceCount: 0
+    };
+  }
+
+  function addFileToBucket(bucket, file, relativePath) {
+    var segments = relativePath.split("/").filter(Boolean);
+    var fileName = segments[segments.length - 1] || file.name;
+    var folders = segments.slice(0, -1);
+    var ext = extension(fileName);
+
+    folders.forEach(function (_, index) {
+      var folderName = folders[index];
+      if (!IGNORE_NAMES.has(folderName)) bucket.dirNames.add(folders.slice(0, index + 1).join("/"));
+    });
+
+    bucket.fileNames.add(fileName.toLowerCase());
+    bucket.fileCount += 1;
+    bucket.sizeBytes += file.size;
+    bucket.latestModified = Math.max(bucket.latestModified, file.lastModified);
+    bucket.earliestModified = Math.min(bucket.earliestModified, file.lastModified);
+    if (IMAGE_EXTENSIONS.has(ext)) bucket.imageCount += 1;
+    if (CODE_EXTENSIONS.has(ext)) bucket.codeCount += 1;
+
+    var meta = {
+      name: fileName,
+      path: bucket.path + "/" + relativePath,
+      relativePath: relativePath,
+      modifiedAt: new Date(file.lastModified).toISOString(),
+      sizeBytes: file.size,
+      extension: ext,
+      file: file
+    };
+
+    bucket.recentFiles.push(meta);
+    if (PREVIEW_EXTENSIONS.has(ext)) bucket.previews.push(meta);
+
+    var depth = folders.length;
+    if (isLayerOneRelativePath(relativePath)) {
+      bucket.layerOneFiles.push(meta);
+    }
+    if (DESIGN_SOURCE_EXTENSIONS.has(ext)) {
+      bucket.designSourceTimes.push(file.lastModified);
+      bucket.designSourceCount += 1;
+    }
+  }
+
+  function toProject(bucket) {
+    var serialInfo = parseSerialProjectName(bucket.name);
+    var timing = resolveBucketTiming(bucket);
+    if (!timing && bucket.fileCount === 0 && !serialInfo) return null;
+
+    var classification = classify(bucket);
+    var createdAt = timing ? timing.createdAt : null;
+    var modifiedAt = timing ? timing.modifiedAt : null;
+    var lastActiveAt = timing ? timing.lastActiveAt : null;
+    var dateSource = timing ? timing.source : null;
+
+    bucket.recentFiles.sort(function (a, b) {
+      return new Date(b.modifiedAt) - new Date(a.modifiedAt);
+    });
+
+    bucket.layerOneFiles.sort(function (a, b) {
+      var folderA = layerOneFolderLabel(a.relativePath);
+      var folderB = layerOneFolderLabel(b.relativePath);
+      if (folderA !== folderB) return folderA.localeCompare(folderB, "zh-CN");
+      return a.name.localeCompare(b.name, "zh-CN");
+    });
+
+    var imageFiles = bucket.recentFiles
+      .filter(function (file) {
+        return IMAGE_EXTENSIONS.has(file.extension);
+      })
+      .map(function (file) {
+        return {
+          name: file.name,
+          path: file.path,
+          relativePath: file.relativePath,
+          folderKey: fileFolderKey(file.relativePath),
+          modifiedAt: file.modifiedAt,
+          sizeBytes: file.sizeBytes,
+          extension: file.extension,
+          file: file.file
+        };
+      })
+      .sort(function (a, b) {
+        if (b.sizeBytes !== a.sizeBytes) return b.sizeBytes - a.sizeBytes;
+        return new Date(b.modifiedAt) - new Date(a.modifiedAt);
+      });
+
+    var layerOneFiles = bucket.layerOneFiles.map(function (file) {
+      return {
+        name: file.name,
+        path: file.path,
+        relativePath: file.relativePath,
+        folderKey: fileFolderKey(file.relativePath),
+        folderLabel: layerOneFolderLabel(file.relativePath),
+        modifiedAt: file.modifiedAt,
+        sizeBytes: file.sizeBytes,
+        extension: file.extension,
+        file: file.file
+      };
+    });
+
+    var extensionSet = new Set();
+    bucket.recentFiles.forEach(function (file) {
+      if (file.extension) extensionSet.add(file.extension);
+    });
+
+    return {
+      id: hashText(bucket.path),
+      name: bucket.name,
+      title: serialInfo ? serialInfo.title : bucket.name,
+      serial: serialInfo ? serialInfo.serial : null,
+      displayName: formatDisplayPath(bucket.relativePath),
+      path: bucket.path,
+      parentPath: bucket.parentPath,
+      relativePath: bucket.relativePath,
+      createdAt: createdAt,
+      modifiedAt: modifiedAt,
+      lastActiveAt: lastActiveAt,
+      folderDate: bucket.folderDate,
+      folderDateSource: dateSource || bucket.folderDateSource,
+      fileCount: bucket.fileCount,
+      folderCount: bucket.dirNames.size,
+      sizeBytes: bucket.sizeBytes,
+      projectType: classification.type,
+      score: classification.score,
+      previewFiles: bucket.previews.slice(0, 8),
+      recentFiles: bucket.recentFiles.slice(0, 8),
+      imageFiles: imageFiles,
+      layerOneFiles: layerOneFiles,
+      extensions: Array.from(extensionSet).sort(),
+      directoryHandle: bucket.directoryHandle || null
+    };
+  }
+
+  function fileFolderKey(relativePath) {
+    if (!relativePath) return "";
+    var index = relativePath.lastIndexOf("/");
+    return index >= 0 ? relativePath.slice(0, index) : "";
+  }
+
+  function classify(bucket) {
+    var type = "Design Project";
+    var score = 20;
+    if (bucket.designSourceCount > 0) {
+      type = "Design Source";
+      score += 24;
+    }
+    TYPE_RULES.forEach(function (rule) {
+      if (bucket.fileNames.has(rule[0].toLowerCase())) {
+        type = rule[1];
+        score += rule[2];
+      }
+    });
+    if (bucket.imageCount >= 4) {
+      type = type === "Design Project" ? "Visual Assets" : type;
+      score += 18;
+    }
+    if (bucket.codeCount >= 8) score += 12;
+    if (bucket.fileCount > 8) score += 8;
+    return { type: type, score: score };
+  }
+
+  function toIso(timestamp) {
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
+    return new Date(timestamp).toISOString();
+  }
+
+  function sizeFilterMinBytes(sizeFilter) {
+    if (sizeFilter === "hideSmall") return IMAGE_SIZE.small;
+    if (sizeFilter === "medium") return IMAGE_SIZE.medium;
+    if (sizeFilter === "large") return IMAGE_SIZE.large;
+    return 0;
+  }
+
+  function filteredImageFiles(project) {
+    if (!project || !project.imageFiles.length) return [];
+    var min = sizeFilterMinBytes(state.sizeFilter);
+    return project.imageFiles.filter(function (file) {
+      return !min || file.sizeBytes >= min;
+    });
+  }
+
+  function displayableImages(project) {
+    return filteredImageFiles(project).slice().sort(function (a, b) {
+      if (b.sizeBytes !== a.sizeBytes) return b.sizeBytes - a.sizeBytes;
+      return new Date(b.modifiedAt) - new Date(a.modifiedAt);
+    });
+  }
+
+  function primaryDisplayImage(project) {
+    var images = displayableImages(project);
+    return images[0] || null;
+  }
+
+  function timelineDisplayImages(project) {
+    return filteredImageFiles(project).slice().sort(function (a, b) {
+      return new Date(b.modifiedAt || 0) - new Date(a.modifiedAt || 0);
+    }).slice(0, TIMELINE_THUMB_MAX_IMAGES);
+  }
+
+  function timelineThumbImageMarkup(file, lazyThumb) {
+    if (lazyThumb) {
+      return '<img class="timeline-thumb-lazy" alt="" data-thumb-path="' + escapeHtml(file.path) + '">';
+    }
+    return '<img src="' + objectUrl(file.file, file.path) + '" alt="">';
+  }
+
+  function timelineThumbContent(project, options) {
+    options = options || {};
+    var images = timelineDisplayImages(project);
+    if (!images.length) {
+      return '<div class="thumb-placeholder">' + escapeHtml(project.projectType) + "</div>";
+    }
+    if (images.length === 1) {
+      return timelineThumbImageMarkup(images[0], options.lazyThumb);
+    }
+    var cells = images.map(function (file) {
+      return '<div class="thumb-grid-cell">' + timelineThumbImageMarkup(file, options.lazyThumb) + "</div>";
+    }).join("");
+    return '<div class="thumb-grid thumb-grid--' + images.length + '">' + cells + "</div>";
+  }
+
+  function sizeFilterLabel(sizeFilter) {
+    if (sizeFilter === "hideSmall") return "隐藏小图";
+    if (sizeFilter === "medium") return "≥512KB";
+    if (sizeFilter === "large") return "≥2MB";
+    return "";
+  }
+
+  function matchesSizeFilter(project, sizeFilter) {
+    if (!sizeFilter || sizeFilter === "all") return true;
+    if (!project.imageFiles || !project.imageFiles.length) return true;
+    var min = sizeFilterMinBytes(sizeFilter);
+    return project.imageFiles.some(function (file) {
+      return file.sizeBytes >= min;
+    });
+  }
+
+  function parentFolderKey(relativePath) {
+    if (!relativePath) return "";
+    var index = relativePath.lastIndexOf("/");
+    return index >= 0 ? relativePath.slice(0, index) : "";
+  }
+
+  function rootFolderKey(relativePath) {
+    if (!relativePath) return "";
+    var index = relativePath.indexOf("/");
+    return index >= 0 ? relativePath.slice(0, index) : relativePath;
+  }
+
+  function scopeAnchorProject() {
+    if (state.anchorProjectId) {
+      var anchored = state.projects.find(function (project) {
+        return project.id === state.anchorProjectId;
+      });
+      if (anchored) return anchored;
+    }
+    return state.projects[0] || null;
+  }
+
+  function matchesScopeFilter(project, scope, anchor) {
+    if (scope === "all") return true;
+    if (scope === "topLevel") return parentFolderKey(project.relativePath) === "";
+    if (scope === "nested") return parentFolderKey(project.relativePath) !== "";
+    if (!anchor) return true;
+    if (scope === "sameParent") {
+      return parentFolderKey(project.relativePath) === parentFolderKey(anchor.relativePath);
+    }
+    if (scope === "sameRoot") {
+      return rootFolderKey(project.relativePath) === rootFolderKey(anchor.relativePath);
+    }
+    return true;
+  }
+
+  function scopeFilterLabel(scope) {
+    if (scope === "sameParent") return "同父文件夹";
+    if (scope === "sameRoot") return "同根目录";
+    if (scope === "topLevel") return "仅顶层";
+    if (scope === "nested") return "仅子文件夹";
+    return "";
+  }
+
+  var SCOPE_FILTER_VALUES = new Set(["all", "sameParent", "sameRoot", "topLevel", "nested"]);
+  var SIZE_FILTER_VALUES = new Set(["all", "hideSmall", "medium", "large"]);
+
+  function loadFilterPreferences() {
+    var scope = localStorage.getItem("designtrace:scopeFilter");
+    if (scope && SCOPE_FILTER_VALUES.has(scope)) {
+      state.scopeFilter = scope;
+      if (els.scopeFilterSelect) els.scopeFilterSelect.value = scope;
+    }
+    var sizeFilter = localStorage.getItem("designtrace:sizeFilter");
+    if (sizeFilter && SIZE_FILTER_VALUES.has(sizeFilter)) {
+      state.sizeFilter = sizeFilter;
+      if (els.sizeFilterSelect) els.sizeFilterSelect.value = sizeFilter;
+    }
+    try {
+      var extRaw = localStorage.getItem("designtrace:extFilter");
+      if (extRaw) {
+        var extValues = JSON.parse(extRaw);
+        if (Array.isArray(extValues) && extValues.length) {
+          state.extFilter = extValues.filter(function (value) {
+            return typeof value === "string" && value;
+          });
+        }
+      }
+    } catch (error) {
+      /* ignore invalid cache */
+    }
+  }
+
+  function saveFilterPreferences() {
+    try {
+      localStorage.setItem("designtrace:scopeFilter", state.scopeFilter || "all");
+      localStorage.setItem("designtrace:sizeFilter", state.sizeFilter || "all");
+      localStorage.setItem("designtrace:extFilter", JSON.stringify(state.extFilter || ["all"]));
+    } catch (error) {
+      /* ignore quota errors */
+    }
+  }
+
+  function extensionFilterLabel(values) {
+    if (!values || !values.length || values.indexOf("all") >= 0) return "";
+    return values.map(function (ext) {
+      if (ext === "sameAsCurrent") return "同当前后缀";
+      return ext;
+    }).join("+");
+  }
+
+  function getExtFilterValues() {
+    if (!els.extFilterMenu) return state.extFilter.length ? state.extFilter.slice() : ["all"];
+    var values = Array.from(els.extFilterMenu.querySelectorAll('input[type="checkbox"]:checked')).map(function (input) {
+      return input.value;
+    });
+    return values.length ? values : ["all"];
+  }
+
+  function updateExtFilterTriggerLabel() {
+    if (!els.extFilterTrigger) return;
+    var values = getExtFilterValues();
+    var label = !values.length || values.indexOf("all") >= 0 ? "全部后缀" : extensionFilterLabel(values);
+    els.extFilterTrigger.textContent = label || "全部后缀";
+    els.extFilterTrigger.title = label || "全部后缀";
+  }
+
+  function setExtFilterOpen(open) {
+    if (!els.extFilter || !els.extFilterTrigger) return;
+    els.extFilter.classList.toggle("is-open", open);
+    els.extFilterTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function extFilterOptionMarkup(value, label) {
+    return [
+      '<label class="ext-filter-option" role="option">',
+      '<input type="checkbox" value="' + escapeHtml(value) + '">',
+      "<span>" + escapeHtml(label) + "</span>",
+      "</label>"
+    ].join("");
+  }
+
+  function syncExtFilterSelection() {
+    if (!els.extFilterMenu) return;
+    var selected = getExtFilterValues();
+    if (!selected.length) {
+      var allInput = els.extFilterMenu.querySelector('input[value="all"]');
+      if (allInput) allInput.checked = true;
+      selected = ["all"];
+    }
+    state.extFilter = selected;
+    updateExtFilterTriggerLabel();
+  }
+
+  function updateExtensionFilterOptions() {
+    if (!els.extFilterMenu) return;
+    var current = (state.extFilter || []).filter(function (value) {
+      return value !== "all";
+    });
+    var extensions = new Set();
+    state.projects.forEach(function (project) {
+      (project.extensions || []).forEach(function (ext) {
+        extensions.add(ext);
+      });
+    });
+    els.extFilterMenu.innerHTML = [
+      '<div class="ext-filter-special">',
+      extFilterOptionMarkup("all", "全部后缀"),
+      extFilterOptionMarkup("sameAsCurrent", "同当前后缀"),
+      "</div>",
+      '<div class="ext-filter-grid">',
+      Array.from(extensions).sort().map(function (ext) {
+        return extFilterOptionMarkup(ext, ext);
+      }).join(""),
+      "</div>"
+    ].join("");
+    var values = current.length ? current : ["all"];
+    var hasChecked = false;
+    Array.from(els.extFilterMenu.querySelectorAll('input[type="checkbox"]')).forEach(function (input) {
+      var checked = values.indexOf(input.value) >= 0;
+      input.checked = checked;
+      if (checked) hasChecked = true;
+    });
+    if (!hasChecked) {
+      var allInput = els.extFilterMenu.querySelector('input[value="all"]');
+      if (allInput) allInput.checked = true;
+      values = ["all"];
+    }
+    state.extFilter = values;
+    updateExtFilterTriggerLabel();
+  }
+
+  function anchorPreviewExtension(anchor) {
+    if (!anchor) return "";
+    var images = displayableImages(anchor);
+    if (!images.length) return "";
+    if (state.previewProjectId === anchor.id && state.previewPath) {
+      var current = images.find(function (file) {
+        return file.path === state.previewPath;
+      });
+      if (current) return current.extension;
+    }
+    return images[0].extension;
+  }
+
+  function projectMatchesExtensions(project, values, anchor) {
+    if (!values.length || values.indexOf("all") >= 0) return true;
+    if (!project.extensions || !project.extensions.length) return false;
+    return values.some(function (ext) {
+      if (ext === "sameAsCurrent") {
+        var previewExt = anchorPreviewExtension(anchor);
+        return previewExt && project.extensions.indexOf(previewExt) >= 0;
+      }
+      return project.extensions.indexOf(ext) >= 0;
+    });
+  }
+
+  function activeFilterLabels() {
+    return [
+      scopeFilterLabel(state.scopeFilter),
+      extensionFilterLabel(state.extFilter),
+      sizeFilterLabel(state.sizeFilter)
+    ].filter(Boolean);
+  }
+
+  function applyFilters() {
+    var query = els.searchInput.value.trim().toLowerCase();
+    var scope = els.scopeFilterSelect ? els.scopeFilterSelect.value : "all";
+    var extValues = getExtFilterValues();
+    var sizeFilter = els.sizeFilterSelect ? els.sizeFilterSelect.value : "all";
+    state.scopeFilter = scope;
+    state.extFilter = extValues;
+    state.sizeFilter = sizeFilter;
+    var anchor = scopeAnchorProject();
+    var selectedId = state.anchorProjectId || (state.filtered[state.selectedIndex] && state.filtered[state.selectedIndex].id);
+
+    state.filtered = state.projects
+      .filter(function (project) {
+        if (query) {
+          var matched = [project.name, project.title, project.serial, project.displayName, project.path, project.relativePath, formatDisplayPath(project.path), formatDisplayPath(project.relativePath), project.projectType].some(function (value) {
+            return value != null && String(value).toLowerCase().includes(query);
+          });
+          if (!matched) return false;
+        }
+        if (!matchesScopeFilter(project, scope, anchor)) return false;
+        if (!projectMatchesExtensions(project, extValues, anchor)) return false;
+        return matchesSizeFilter(project, sizeFilter);
+      })
+      .sort(compareProjectsByTimeline);
+    state.timelineTimeRangeCache = null;
+
+    if (selectedId) {
+      var restoredIndex = state.filtered.findIndex(function (project) {
+        return project.id === selectedId;
+      });
+      state.selectedIndex = restoredIndex >= 0 ? restoredIndex : 0;
+    } else if (state.selectedIndex >= state.filtered.length) {
+      state.selectedIndex = 0;
+    }
+    render();
+    saveFilterPreferences();
+  }
+
+  function heroProject() {
+    return state.filtered[state.selectedIndex] || null;
+  }
+
+  function heroDisplayProject() {
+    if (state.hoverIndex !== null && state.filtered[state.hoverIndex]) {
+      return state.filtered[state.hoverIndex];
+    }
+    return heroProject();
+  }
+
+  function isHeroHoverPreview() {
+    return state.hoverIndex !== null && state.hoverIndex !== state.selectedIndex;
+  }
+
+  function scheduleHeroPreview() {
+    if (heroPreviewTimer) clearTimeout(heroPreviewTimer);
+    heroPreviewTimer = setTimeout(function () {
+      heroPreviewTimer = null;
+      renderHero();
+    }, HERO_PREVIEW_DELAY);
+  }
+
+  function cancelHeroPreview() {
+    if (heroPreviewTimer) {
+      clearTimeout(heroPreviewTimer);
+      heroPreviewTimer = null;
+    }
+    invalidateHeroImageLoad();
+  }
+
+  function isTimelineHoverLocked() {
+    return Date.now() < state.timelineHoverLockUntil;
+  }
+
+  function lockTimelineHover(durationMs) {
+    state.timelineHoverLockUntil = Date.now() + (durationMs || 520);
+  }
+
+  function setTimelineHover(index) {
+    if (isTimelineHoverLocked()) return;
+    var nextHover = index === state.selectedIndex ? null : index;
+    if (state.hoverIndex === nextHover) return;
+    invalidateHeroImageLoad();
+    state.hoverIndex = nextHover;
+    updateTimelineCardStates();
+    scheduleHeroPreview();
+  }
+
+  function clearTimelineHover() {
+    if (state.hoverIndex === null) return;
+    invalidateHeroImageLoad();
+    state.hoverIndex = null;
+    updateTimelineCardStates();
+    scheduleHeroPreview();
+  }
+
+  function selectIndex(index, options) {
+    options = options || {};
+    if (!state.filtered.length) return;
+    cancelHeroPreview();
+    var nextIndex = (index + state.filtered.length) % state.filtered.length;
+    var projectChanged = nextIndex !== state.selectedIndex;
+    state.statusMessage = "";
+    state.selectedIndex = nextIndex;
+    state.hoverIndex = null;
+    lockTimelineHover();
+    if (projectChanged) {
+      state.previewPath = "";
+      state.previewProjectId = "";
+    } else if (options.allowReselect) {
+      renderHero();
+      updateTimelineCardStates();
+      scheduleVisibleCardsSync();
+      if (options.center !== false) centerActiveThumb(true);
+      return;
+    }
+    if (state.filtered[state.selectedIndex]) {
+      state.anchorProjectId = state.filtered[state.selectedIndex].id;
+      localStorage.setItem("designtrace:selectedProjectId", state.filtered[state.selectedIndex].id);
+    }
+    renderHero();
+    updateTimelineCardStates();
+    renderControls();
+    scheduleVisibleCardsSync();
+    if (options.center !== false) centerActiveThumb(true);
+    updateTimelinePeriodFilters();
+    renderHeatmap({ syncToSelection: true });
+  }
+
+  function render() {
+    renderHero();
+    renderTimeline();
+    updateTimelinePeriodFilters();
+    renderHeatmap();
+    renderControls();
+  }
+
+  function renderHero() {
+    var selectedProject = heroProject();
+    var displayProject = heroDisplayProject();
+    var hoverPreview = isHeroHoverPreview();
+
+    if (!selectedProject || !displayProject) {
+      invalidateHeroImageLoad();
+      els.heroArtwork.innerHTML = "";
+      els.heroArtwork.classList.remove("is-loading");
+      els.heroThumbs.innerHTML = "";
+      updateShowcaseLayout(false);
+      els.slideshowStage.classList.remove("is-preview");
+      if (els.projectInfo) els.projectInfo.classList.remove("is-ready");
+      els.heroKicker.textContent = "";
+      els.heroTitle.textContent = "";
+      els.heroMeta.textContent = "";
+      renderStatusBar();
+      return;
+    }
+
+    var currentFile = hoverPreview ? primaryDisplayImage(displayProject) : ensurePreview(selectedProject);
+    var sideFiles = hoverPreview ? [] : projectLayerOneFiles(selectedProject);
+
+    state.heroCurrentFile = currentFile || null;
+    if (!currentFile || !state.heroImageDims || state.heroImageDims.path !== currentFile.path) {
+      state.heroImageDims = null;
+    }
+
+    loadHeroArtwork(displayProject, currentFile, hoverPreview);
+    renderHeroSideFiles(selectedProject, sideFiles, currentFile, hoverPreview);
+    updateShowcaseLayout(!hoverPreview && !!selectedProject);
+    els.slideshowStage.classList.toggle("is-preview", hoverPreview);
+    if (els.projectInfo) {
+      els.projectInfo.classList.toggle("is-ready", !state.scanning && !!selectedProject);
+    }
+    els.heroKicker.textContent = displayProject.serial ? "#" + displayProject.serial : "";
+    els.heroTitle.textContent = projectDisplayTitle(displayProject);
+    els.heroMeta.textContent = displayProject.fileCount + " 个文件 · "
+      + displayProject.folderCount + " 个文件夹 · "
+      + formatBytes(displayProject.sizeBytes);
+    renderStatusBar();
+  }
+
+  function loadHeroArtwork(displayProject, currentFile, hoverPreview) {
+    var preview = currentFile || previewFile(displayProject);
+    var gen = ++heroRenderGeneration;
+    var silentLoad = state.slideshowFullscreen && !hoverPreview;
+    heroArtworkLoadingGen = gen;
+
+    if (!preview) {
+      els.heroArtwork.classList.remove("is-loading");
+      els.heroArtwork.innerHTML = emptyArtwork(projectDisplayTitle(displayProject), formatDisplayPath(displayProject.path));
+      heroArtworkLoadingGen = null;
+      resolveHeroImageLoadWaiters();
+      return;
+    }
+
+    if (!IMAGE_EXTENSIONS.has(preview.extension)) {
+      els.heroArtwork.classList.remove("is-loading");
+      els.heroArtwork.innerHTML = emptyArtwork(preview.name, preview.extension || formatDisplayPath(preview.path));
+      heroArtworkLoadingGen = null;
+      resolveHeroImageLoadWaiters();
+      return;
+    }
+
+    if (!silentLoad) {
+      els.heroArtwork.classList.add("is-loading");
+      els.heroArtwork.innerHTML = '<span class="hero-spinner" aria-hidden="true"></span>';
+    }
+
+    heroImageUrl(preview.file, preview.path, hoverPreview).then(function (url) {
+      if (gen !== heroRenderGeneration) return;
+      if (!els.heroArtwork.isConnected) return;
+      if (state.heroCurrentFile && state.heroCurrentFile.path !== preview.path) return;
+
+      var img = document.createElement("img");
+      img.className = "art-image";
+      img.alt = preview.name;
+      img.decoding = "async";
+
+      var settle = function () {
+        if (gen !== heroRenderGeneration) return;
+        heroArtworkLoadingGen = null;
+        els.heroArtwork.classList.remove("is-loading");
+        if (silentLoad) {
+          els.heroArtwork.innerHTML = "";
+          els.heroArtwork.appendChild(img);
+        } else if (!img.isConnected) {
+          els.heroArtwork.innerHTML = "";
+          els.heroArtwork.appendChild(img);
+        }
+        captureHeroImageDimensions(preview, gen);
+        resolveHeroImageLoadWaiters();
+      };
+
+      img.addEventListener("load", settle, { once: true });
+      img.addEventListener("error", settle, { once: true });
+
+      if (silentLoad) {
+        img.src = url;
+        if (img.complete) settle();
+        return;
+      }
+
+      els.heroArtwork.innerHTML = "";
+      els.heroArtwork.appendChild(img);
+      img.src = url;
+      if (img.complete) settle();
+    }).catch(function () {
+      if (gen !== heroRenderGeneration) return;
+      heroArtworkLoadingGen = null;
+      els.heroArtwork.classList.remove("is-loading");
+      els.heroArtwork.innerHTML = emptyArtwork(projectDisplayTitle(displayProject), formatDisplayPath(displayProject.path));
+      resolveHeroImageLoadWaiters();
+    });
+
+    if (!hoverPreview) {
+      scheduleImageDimensions(preview.file, preview.path, function (dims) {
+        if (gen !== heroRenderGeneration) return;
+        if (!state.heroCurrentFile || state.heroCurrentFile.path !== preview.path) return;
+        state.heroImageDims = { path: preview.path, w: dims.w, h: dims.h };
+        renderStatusBar();
+      });
+    }
+  }
+
+  function captureHeroImageDimensions(currentFile, gen) {
+    if (!currentFile) return;
+    var artImg = els.heroArtwork.querySelector(".art-image");
+    if (!artImg) return;
+    var dimPath = currentFile.path;
+    var applyDims = function () {
+      if (gen !== undefined && gen !== heroRenderGeneration) return;
+      if (!artImg.isConnected) return;
+      if (!artImg.naturalWidth) return;
+      if (state.heroImageDims && state.heroImageDims.path === dimPath && state.heroImageDims.w > artImg.naturalWidth) {
+        renderStatusBar();
+        return;
+      }
+      state.heroImageDims = { path: dimPath, w: artImg.naturalWidth, h: artImg.naturalHeight };
+      if (state.heroCurrentFile && state.heroCurrentFile.path === dimPath) renderStatusBar();
+    };
+    if (artImg.complete && artImg.naturalWidth) {
+      applyDims();
+    } else {
+      artImg.addEventListener("load", applyDims, { once: true });
+    }
+  }
+
+  function timelineAvailableYears() {
+    var years = new Set();
+    state.filtered.forEach(function (project) {
+      var date = projectTimelineDate(project);
+      if (Number.isFinite(date.getTime()) && date.getTime() > 0) years.add(date.getFullYear());
+    });
+    return Array.from(years).sort(function (a, b) {
+      return a - b;
+    });
+  }
+
+  function timelineAvailableMonths(year) {
+    var months = new Set();
+    state.filtered.forEach(function (project) {
+      var date = projectTimelineDate(project);
+      if (!Number.isFinite(date.getTime()) || date.getFullYear() !== year) return;
+      months.add(date.getMonth());
+    });
+    return Array.from(months).sort(function (a, b) {
+      return a - b;
+    });
+  }
+
+  function timelinePeriodAtIndex(index) {
+    var project = state.filtered[index];
+    if (!project) return null;
+    var date = projectTimelineDate(project);
+    if (!Number.isFinite(date.getTime())) return null;
+    return { year: date.getFullYear(), month: date.getMonth() };
+  }
+
+  function timelineViewportCenterIndex(metrics) {
+    metrics = metrics || state.cachedTimelineMetrics || timelineMetrics();
+    var viewport = els.timeline.clientWidth || 0;
+    if (!state.filtered.length) return 0;
+    var viewportCenter = -state.timelineOffset + viewport / 2;
+    var bestIndex = 0;
+    var bestDistance = Infinity;
+    for (var index = 0; index < state.filtered.length; index += 1) {
+      var distance = Math.abs(cardCenter(index, metrics) - viewportCenter);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    }
+    return bestIndex;
+  }
+
+  function currentTimelinePeriodFromViewport() {
+    var period = timelinePeriodAtIndex(timelineViewportCenterIndex());
+    if (period) return period;
+    return timelinePeriodAtIndex(state.selectedIndex);
+  }
+
+  function syncTimelinePeriodFiltersFromViewport() {
+    if (!els.timelineYearSelect || !els.timelineMonthSelect) return;
+    if (!state.filtered.length || state.timelinePeriodSyncLock) return;
+    var period = currentTimelinePeriodFromViewport();
+    if (!period) return;
+    var yearValue = parseInt(els.timelineYearSelect.value, 10);
+    var monthValue = parseInt(els.timelineMonthSelect.value, 10);
+    if (yearValue === period.year && monthValue === period.month) return;
+    state.timelinePeriodSyncLock = true;
+    populateTimelineYearSelect(period.year);
+    populateTimelineMonthSelect(period.year, period.month);
+    state.timelinePeriodSyncLock = false;
+    renderHeatmap();
+  }
+
+  function findFirstIndexForPeriod(year, month) {
+    for (var index = 0; index < state.filtered.length; index += 1) {
+      var date = projectTimelineDate(state.filtered[index]);
+      if (!Number.isFinite(date.getTime())) continue;
+      if (date.getFullYear() === year && date.getMonth() === month) return index;
+    }
+    return -1;
+  }
+
+  function findFirstIndexForYear(year) {
+    for (var index = 0; index < state.filtered.length; index += 1) {
+      var date = projectTimelineDate(state.filtered[index]);
+      if (Number.isFinite(date.getTime()) && date.getFullYear() === year) return index;
+    }
+    return -1;
+  }
+
+  function populateTimelineYearSelect(selectedYear) {
+    if (!els.timelineYearSelect) return null;
+    var years = timelineAvailableYears();
+    els.timelineYearSelect.innerHTML = years.map(function (year) {
+      return '<option value="' + year + '">' + year + "年</option>";
+    }).join("");
+    if (!years.length) return null;
+    var nextYear = years.indexOf(selectedYear) >= 0 ? selectedYear : years[0];
+    els.timelineYearSelect.value = String(nextYear);
+    return nextYear;
+  }
+
+  function populateTimelineMonthSelect(year, selectedMonth) {
+    if (!els.timelineMonthSelect) return null;
+    var months = timelineAvailableMonths(year);
+    els.timelineMonthSelect.innerHTML = months.map(function (month) {
+      return '<option value="' + month + '">' + (month + 1) + "月</option>";
+    }).join("");
+    if (!months.length) return null;
+    var nextMonth = months.indexOf(selectedMonth) >= 0 ? selectedMonth : months[0];
+    els.timelineMonthSelect.value = String(nextMonth);
+    return nextMonth;
+  }
+
+  function updateTimelinePeriodFilters() {
+    if (!els.timelineYearSelect || !els.timelineMonthSelect) return;
+    if (!state.filtered.length) {
+      els.timelineYearSelect.disabled = true;
+      els.timelineMonthSelect.disabled = true;
+      els.timelineYearSelect.innerHTML = '<option value="">年份</option>';
+      els.timelineMonthSelect.innerHTML = '<option value="">月份</option>';
+      return;
+    }
+
+    els.timelineYearSelect.disabled = false;
+    els.timelineMonthSelect.disabled = false;
+    var period = currentTimelinePeriodFromViewport();
+    if (!period) {
+      var fallbackDate = projectTimelineDate(state.filtered[0]);
+      period = {
+        year: fallbackDate.getFullYear(),
+        month: fallbackDate.getMonth()
+      };
+    }
+
+    state.timelinePeriodSyncLock = true;
+    var year = populateTimelineYearSelect(period.year);
+    var month = year == null ? null : populateTimelineMonthSelect(year, period.month);
+    state.timelinePeriodSyncLock = false;
+    return { year: year, month: month };
+  }
+
+  function navigateToTimelinePeriod(year, month) {
+    if (!Number.isFinite(year) || !Number.isFinite(month)) return;
+    var index = findFirstIndexForPeriod(year, month);
+    if (index < 0) index = findFirstIndexForYear(year);
+    if (index < 0) return;
+    state.heatmapViewYear = year;
+    state.heatmapViewMonth = month;
+    selectIndex(index, { center: true });
+  }
+
+  function onTimelineYearChange() {
+    if (state.timelinePeriodSyncLock || !els.timelineYearSelect || !els.timelineMonthSelect) return;
+    var year = parseInt(els.timelineYearSelect.value, 10);
+    if (!Number.isFinite(year)) return;
+    var months = timelineAvailableMonths(year);
+    if (!months.length) return;
+    state.timelinePeriodSyncLock = true;
+    var month = populateTimelineMonthSelect(year, months[0]);
+    state.timelinePeriodSyncLock = false;
+    navigateToTimelinePeriod(year, month);
+  }
+
+  function onTimelineMonthChange() {
+    if (state.timelinePeriodSyncLock || !els.timelineYearSelect || !els.timelineMonthSelect) return;
+    var year = parseInt(els.timelineYearSelect.value, 10);
+    var month = parseInt(els.timelineMonthSelect.value, 10);
+    navigateToTimelinePeriod(year, month);
+  }
+
+  function updateTimelineCardStates() {
+    els.timeline.querySelectorAll(".timeline-card").forEach(function (card) {
+      var index = parseInt(card.dataset.index, 10);
+      if (!Number.isFinite(index)) return;
+      var isActive = index === state.selectedIndex;
+      var isPreview = state.hoverIndex === index && state.hoverIndex !== state.selectedIndex;
+      card.classList.toggle("active", isActive);
+      card.classList.toggle("is-preview", isPreview);
+      card.style.zIndex = String(isPreview ? 200 : isActive ? 160 : index + 1);
+    });
+    updateTimelineTickStates();
+  }
+
+  function updateTimelineTickStates() {
+    var track = els.timeline.querySelector(".timeline-track");
+    if (!track) return;
+    track.querySelectorAll(".tick[data-card-index], .tick-label[data-card-index]").forEach(function (node) {
+      var index = parseInt(node.dataset.cardIndex, 10);
+      node.classList.toggle("is-active", index === state.selectedIndex);
+    });
+  }
+
+  function projectLayerOneFiles(project) {
+    if (!project || !project.layerOneFiles) return [];
+    return project.layerOneFiles;
+  }
+
+  function ensurePreview(project) {
+    var files = projectLayerOneFiles(project);
+    if (!project || !files.length) {
+      state.previewPath = "";
+      state.previewProjectId = project ? project.id : "";
+      return null;
+    }
+    if (state.previewProjectId !== project.id) {
+      state.previewProjectId = project.id;
+      var firstImage = files.find(function (file) {
+        return IMAGE_EXTENSIONS.has(file.extension);
+      });
+      state.previewPath = (firstImage || files[0]).path;
+    }
+    var current = files.find(function (file) {
+      return file.path === state.previewPath;
+    });
+    if (!current) {
+      var fallbackImage = files.find(function (file) {
+        return IMAGE_EXTENSIONS.has(file.extension);
+      });
+      current = fallbackImage || files[0];
+      state.previewPath = current.path;
+    }
+    return current;
+  }
+
+  function previewFile(project) {
+    if (!project) return null;
+    return ensurePreview(project) || primaryDisplayImage(project);
+  }
+
+  function heroFileGroupKey(project, folderLabel) {
+    return project.id + "|" + folderLabel;
+  }
+
+  function isHeroFileGroupCollapsed(project, folderLabel) {
+    return state.collapsedHeroFileGroups.has(heroFileGroupKey(project, folderLabel));
+  }
+
+  function toggleHeroFileGroup(project, folderLabel) {
+    var key = heroFileGroupKey(project, folderLabel);
+    if (state.collapsedHeroFileGroups.has(key)) state.collapsedHeroFileGroups.delete(key);
+    else state.collapsedHeroFileGroups.add(key);
+  }
+
+  function appendHeroFileGroupHeading(container, project, folderLabel, fileCount) {
+    var groupKey = heroFileGroupKey(project, folderLabel);
+    var collapsed = isHeroFileGroupCollapsed(project, folderLabel);
+    var heading = document.createElement("button");
+    heading.type = "button";
+    heading.className = "hero-file-group" + (collapsed ? " is-collapsed" : "");
+    heading.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    heading.dataset.groupKey = groupKey;
+    heading.innerHTML = [
+      '<span class="hero-file-group-title">' + escapeHtml(folderLabel) + "</span>",
+      '<span class="hero-file-group-meta">',
+      '<span class="hero-file-group-count">' + fileCount + "</span>",
+      '<svg class="hero-file-group-chevron" viewBox="0 0 24 24" aria-hidden="true">',
+      '<path d="M6.5 9.5 12 15l5.5-5.5" />',
+      "</svg>",
+      "</span>"
+    ].join("");
+    heading.addEventListener("click", function () {
+      toggleHeroFileGroup(project, folderLabel);
+      var nextCollapsed = isHeroFileGroupCollapsed(project, folderLabel);
+      heading.classList.toggle("is-collapsed", nextCollapsed);
+      heading.setAttribute("aria-expanded", nextCollapsed ? "false" : "true");
+      container.querySelectorAll('.hero-file-item[data-group-key="' + groupKey + '"]').forEach(function (item) {
+        item.classList.toggle("is-group-collapsed", nextCollapsed);
+      });
+    });
+    container.appendChild(heading);
+  }
+
+  function appendHeroFileItem(container, project, file, currentFile, gen) {
+    var isImage = IMAGE_EXTENSIONS.has(file.extension);
+    var isDesign = isDesignSourceExtension(file.extension);
+    var groupKey = heroFileGroupKey(project, file.folderLabel);
+    var collapsed = isHeroFileGroupCollapsed(project, file.folderLabel);
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "hero-file-item"
+      + (currentFile && file.path === currentFile.path ? " active" : "")
+      + (isImage ? " is-image" : isDesign ? " is-design" : " is-file")
+      + (collapsed ? " is-group-collapsed" : "");
+    button.title = formatDisplayPath(file.relativePath);
+    button.dataset.path = file.path;
+    button.dataset.groupKey = groupKey;
+
+    if (isImage) {
+      button.innerHTML = [
+        '<span class="hero-file-visual">',
+        '<span class="hero-thumb-spinner" aria-hidden="true"></span>',
+        '<img class="hero-thumb-lazy" alt="' + escapeHtml(file.name) + '">',
+        "</span>",
+        '<span class="hero-file-name">' + escapeHtml(file.name) + "</span>"
+      ].join("");
+      button.classList.add("is-loading");
+      scaledImageUrl(file.file, file.path, HERO_THUMB_MAX_WIDTH, 0.78).then(function (url) {
+        if (gen !== heroRenderGeneration) return;
+        var img = button.querySelector("img.hero-thumb-lazy");
+        if (!img || !img.isConnected) return;
+        img.src = url;
+        img.classList.remove("hero-thumb-lazy");
+        button.classList.remove("is-loading");
+      }).catch(function () {
+        button.classList.remove("is-loading");
+      });
+    } else if (isDesign) {
+      button.innerHTML = [
+        '<span class="hero-file-visual">',
+        designFileIconHtml(file.extension),
+        "</span>",
+        '<span class="hero-file-name">' + escapeHtml(file.name) + "</span>"
+      ].join("");
+    } else {
+      button.innerHTML = [
+        '<span class="hero-file-visual">',
+        '<span class="hero-file-badge">' + escapeHtml((file.extension || "file").replace(".", "").toUpperCase()) + "</span>",
+        "</span>",
+        '<span class="hero-file-name">' + escapeHtml(file.name) + "</span>"
+      ].join("");
+    }
+
+    button.addEventListener("click", function () {
+      state.previewPath = file.path;
+      state.previewProjectId = project.id;
+      renderHero();
+    });
+    container.appendChild(button);
+  }
+
+  function renderHeroSideFiles(project, files, currentFile, hoverPreview) {
+    els.heroThumbs.innerHTML = "";
+    if (hoverPreview) {
+      return;
+    }
+    if (!files.length) {
+      els.heroThumbs.innerHTML = '<div class="hero-file-empty">暂无第一层文件</div>';
+      return;
+    }
+    var gen = heroRenderGeneration;
+    var groupOrder = [];
+    var groupCounts = new Map();
+    files.forEach(function (file) {
+      if (!groupCounts.has(file.folderLabel)) {
+        groupOrder.push(file.folderLabel);
+        groupCounts.set(file.folderLabel, 0);
+      }
+      groupCounts.set(file.folderLabel, groupCounts.get(file.folderLabel) + 1);
+    });
+
+    groupOrder = sortHeroFileGroupLabels(groupOrder);
+
+    groupOrder.forEach(function (folderLabel) {
+      appendHeroFileGroupHeading(els.heroThumbs, project, folderLabel, groupCounts.get(folderLabel));
+      files.forEach(function (file) {
+        if (file.folderLabel !== folderLabel) return;
+        appendHeroFileItem(els.heroThumbs, project, file, currentFile, gen);
+      });
+    });
+
+    var activeItem = els.heroThumbs.querySelector(".hero-file-item.active:not(.is-group-collapsed)");
+    if (activeItem) activeItem.scrollIntoView({ block: "nearest" });
+  }
+
+  function stepHeroThumb(direction) {
+    var project = heroProject();
+    if (!project) return false;
+    var files = projectLayerOneFiles(project);
+    if (files.length <= 1) return false;
+    var currentFile = ensurePreview(project);
+    var currentIndex = 0;
+    for (var i = 0; i < files.length; i += 1) {
+      if (currentFile && files[i].path === currentFile.path) {
+        currentIndex = i;
+        break;
+      }
+    }
+    var nextIndex = (currentIndex + direction + files.length) % files.length;
+    if (nextIndex === currentIndex) return false;
+    state.previewPath = files[nextIndex].path;
+    state.previewProjectId = project.id;
+    renderHero();
+    return true;
+  }
+
+  function artworkMarkup(project, currentFile) {
+    if (!project) return "";
+    var preview = currentFile || previewFile(project);
+
+    if (preview && IMAGE_EXTENSIONS.has(preview.extension)) {
+      return '<img class="art-image art-image-lazy" alt="' + escapeHtml(preview.name) + '">';
+    }
+    return emptyArtwork(projectDisplayTitle(project), formatDisplayPath(project.path));
+  }
+
+  function emptyArtwork(title, subtitle) {
+    var heading = title ? "<h2>" + escapeHtml(title) + "</h2>" : "";
+    return '<div class="art-generated">' + heading + "<p>" + escapeHtml(subtitle) + "</p></div>";
+  }
+
+  function timelineScaleFromSlider(value) {
+    var ratio = value / TIMELINE.scaleSteps;
+    return TIMELINE.scaleMin * Math.pow(TIMELINE.scaleMax / TIMELINE.scaleMin, ratio);
+  }
+
+  function sliderFromTimelineScale(scale) {
+    var clamped = Math.min(TIMELINE.scaleMax, Math.max(TIMELINE.scaleMin, scale));
+    var ratio = Math.log(clamped / TIMELINE.scaleMin) / Math.log(TIMELINE.scaleMax / TIMELINE.scaleMin);
+    return Math.round(ratio * TIMELINE.scaleSteps);
+  }
+
+  function timelineScaleLabel(scale) {
+    return Math.round(scale * 100) + "%";
+  }
+
+  function setTimelineScale(nextScale, anchorX) {
+    var previous = state.timelineScale;
+    state.timelineScale = Math.min(TIMELINE.scaleMax, Math.max(TIMELINE.scaleMin, nextScale));
+    if (previous === state.timelineScale && anchorX == null) {
+      updateStatusSlider();
+      return;
+    }
+    var rect = els.timeline.getBoundingClientRect();
+    var pointerX = anchorX != null ? anchorX : rect.width / 2;
+    state.timelineOffset = pointerX - ((pointerX - state.timelineOffset) / previous) * state.timelineScale;
+    scheduleTimelineLayout(false);
+    updateStatusSlider();
+  }
+
+  function visibleCardRange(metrics) {
+    var count = state.filtered.length;
+    if (!count) return { start: 0, end: -1 };
+    var viewport = els.timeline.clientWidth || 1000;
+    var visibleLeft = -state.timelineOffset - metrics.padding;
+    var visibleRight = visibleLeft + viewport;
+    var span = metrics.step + metrics.actualCardWidth;
+    var buffer = span * TIMELINE_VISIBLE_BUFFER;
+    var start = Math.floor((visibleLeft - buffer) / Math.max(metrics.step, 1));
+    var end = Math.ceil((visibleRight + buffer - metrics.actualCardWidth) / Math.max(metrics.step, 1));
+    start = Math.max(0, Math.min(count - 1, start));
+    end = Math.max(0, Math.min(count - 1, end));
+    if (start > end) {
+      start = end;
+    }
+    return { start: start, end: end };
+  }
+
+  function desiredVisibleCardIndexes(metrics) {
+    if (state.filtered.length < TIMELINE_VIRTUALIZE_MIN) {
+      var all = new Set();
+      for (var allIndex = 0; allIndex < state.filtered.length; allIndex += 1) {
+        all.add(allIndex);
+      }
+      return { indexes: all, range: { start: 0, end: Math.max(0, state.filtered.length - 1) } };
+    }
+    var range = visibleCardRange(metrics);
+    var indexes = new Set();
+    for (var index = range.start; index <= range.end; index += 1) {
+      indexes.add(index);
+    }
+    if (state.filtered[state.selectedIndex]) indexes.add(state.selectedIndex);
+    if (state.hoverIndex !== null && state.filtered[state.hoverIndex]) indexes.add(state.hoverIndex);
+    return { indexes: indexes, range: range };
+  }
+
+  function scheduleVisibleCardsSync() {
+    if (visibleCardsFrame) cancelAnimationFrame(visibleCardsFrame);
+    visibleCardsFrame = requestAnimationFrame(function () {
+      visibleCardsFrame = null;
+      var track = els.timeline.querySelector(".timeline-track");
+      if (!track || !state.filtered.length) return;
+      syncVisibleTimelineCards(track, state.cachedTimelineMetrics || timelineMetrics());
+    });
+  }
+
+  function scheduleVisibleCardsSyncDelayed(delay) {
+    if (visibleCardsTimer) clearTimeout(visibleCardsTimer);
+    visibleCardsTimer = setTimeout(function () {
+      visibleCardsTimer = null;
+      scheduleVisibleCardsSync();
+    }, delay);
+  }
+
+  function syncVisibleTimelineCards(track, metrics, options) {
+    if (!track || !state.filtered.length) return;
+    metrics = metrics || timelineMetrics();
+    state.cachedTimelineMetrics = metrics;
+    var desired = desiredVisibleCardIndexes(metrics);
+    var existing = new Map();
+    var forceLayout = options && options.forceLayout;
+    track.querySelectorAll(".timeline-card").forEach(function (card) {
+      var idx = parseInt(card.dataset.index, 10);
+      if (!Number.isFinite(idx) || !desired.indexes.has(idx)) {
+        card.remove();
+        return;
+      }
+      existing.set(idx, card);
+      if (forceLayout) applyCardLayout(card, idx, metrics);
+    });
+    desired.indexes.forEach(function (index) {
+      if (existing.has(index)) return;
+      var card = createTimelineCard(state.filtered[index], index, metrics, { lazyThumb: true });
+      card.dataset.index = String(index);
+      track.appendChild(card);
+      hydrateTimelineCardThumb(card, state.filtered[index]);
+    });
+    updateTimelineCardStates();
+  }
+
+  function scheduleTimelineLayout(animated) {
+    if (timelineLayoutFrame) cancelAnimationFrame(timelineLayoutFrame);
+    timelineLayoutFrame = requestAnimationFrame(function () {
+      timelineLayoutFrame = null;
+      updateTimelineLayout({ animated: animated });
+    });
+  }
+
+  function applyCardLayout(card, index, metrics) {
+    card.style.left = cardLeft(index, metrics) + "px";
+    card.style.setProperty("--card-width", metrics.actualCardWidth + "px");
+    card.style.setProperty("--card-height", metrics.cardHeight + "px");
+    card.style.setProperty("--thumb-height", metrics.thumbHeight + "px");
+    card.classList.toggle("is-narrow", metrics.narrow);
+    card.classList.toggle("is-minimal", metrics.minimal);
+  }
+
+  function bindTimelineCardEvents(card, project, index) {
+    card.addEventListener("pointerdown", function (event) {
+      if (event.target.closest(".timeline-folder-action")) return;
+      event.stopPropagation();
+    });
+    card.addEventListener("click", function (event) {
+      if (event.target.closest(".timeline-folder-action")) return;
+      if (state.lastDragReleaseAt && Date.now() - state.lastDragReleaseAt < 160) return;
+      event.stopPropagation();
+      selectIndex(index, { center: true, allowReselect: true });
+    });
+    card.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        if (event.target.closest(".timeline-folder-action")) return;
+        event.preventDefault();
+        selectIndex(index, { allowReselect: true });
+      }
+    });
+    var folderAction = card.querySelector(".timeline-folder-action");
+    if (folderAction) {
+      folderAction.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        handleProjectFolderAction(project, folderAction);
+      });
+    }
+    bindThumbGridTooltipEvents(card, project);
+    card.addEventListener("mouseenter", function () {
+      setTimelineHover(index);
+    });
+    card.addEventListener("mouseleave", function (event) {
+      if (state.hoverIndex !== index) return;
+      var nextCard = event.relatedTarget && event.relatedTarget.closest
+        ? event.relatedTarget.closest(".timeline-card")
+        : null;
+      if (nextCard && nextCard !== card) return;
+      clearTimelineHover();
+    });
+  }
+
+  function createTimelineCard(project, index, metrics, options) {
+    options = options || {};
+    var isActive = index === state.selectedIndex;
+    var isPreview = state.hoverIndex === index && state.hoverIndex !== state.selectedIndex;
+    var card = document.createElement("div");
+    card.className = "timeline-card"
+      + (isActive ? " active" : "")
+      + (isPreview ? " is-preview" : "")
+      + (metrics.minimal ? " is-minimal" : metrics.narrow ? " is-narrow" : "");
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.dataset.index = String(index);
+    card.style.zIndex = String(isPreview ? 200 : isActive ? 160 : index + 1);
+    applyCardLayout(card, index, metrics);
+    card.innerHTML = timelineCardMarkup(project, options);
+    bindTimelineCardEvents(card, project, index);
+    return card;
+  }
+
+  function appendTimelineAxisTick(track, x, cardIndex) {
+    var tick = document.createElement("div");
+    tick.className = "tick";
+    tick.style.left = x + "px";
+    if (cardIndex != null) {
+      tick.dataset.cardIndex = String(cardIndex);
+      if (cardIndex === state.selectedIndex) tick.classList.add("is-active");
+    }
+    track.appendChild(tick);
+  }
+
+  function appendTimelineAxisLabel(track, x, html, classNames, align, cardIndex) {
+    var label = document.createElement("div");
+    label.className = "tick-label " + classNames.join(" ");
+    label.style.left = x + "px";
+    if (align === "start") label.classList.add("tick-label-start");
+    else if (align === "end") label.classList.add("tick-label-end");
+    if (cardIndex != null) {
+      label.dataset.cardIndex = String(cardIndex);
+      if (cardIndex === state.selectedIndex) label.classList.add("is-active");
+    }
+    label.innerHTML = html;
+    track.appendChild(label);
+  }
+
+  function timelineAxisMonthHtml(month) {
+    return '<span class="tick-month-num">' + month + '</span><span class="tick-month-suffix">月</span>';
+  }
+
+  function timelineAxisYearHtml(year) {
+    return '<span class="tick-year-num">' + year + '</span><span class="tick-year-suffix">年</span>';
+  }
+
+  function timelineLabelMinGap(metrics, kind) {
+    var step = metrics.step;
+    if (kind === "year") return Math.max(56, step * 2.35);
+    if (kind === "month") return Math.max(32, step * 1.3);
+    return Math.max(14, step * 0.68);
+  }
+
+  function canPlaceTimelineLabel(placements, x, kind, metrics) {
+    var minGap = timelineLabelMinGap(metrics, kind);
+    for (var i = 0; i < placements.length; i += 1) {
+      if (Math.abs(x - placements[i].x) < Math.max(minGap, timelineLabelMinGap(metrics, placements[i].kind))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function placeTimelineLabel(track, placements, x, kind, html, classNames, align, metrics, cardIndex) {
+    var force = cardIndex === state.selectedIndex;
+    if (!force && kind === "day" && metrics.step < 20) return;
+    if (!force && kind === "month" && metrics.step < 9) return;
+    var spacingKind = classNames.indexOf("tick-label-year-month") >= 0 ? "year" : kind;
+    if (!force && kind === "year" && classNames.indexOf("tick-label-year") >= 0 && metrics.step < 48) return;
+    if (!force && !canPlaceTimelineLabel(placements, x, spacingKind, metrics)) return;
+    appendTimelineAxisLabel(track, x, html, classNames, align, cardIndex);
+    placements.push({ x: x, kind: spacingKind });
+  }
+
+  function renderTicks(track, metrics) {
+    track.querySelectorAll(".tick, .tick-label").forEach(function (node) {
+      node.remove();
+    });
+    var count = state.filtered.length;
+    if (!count) return;
+
+    var placements = [];
+
+    for (var index = 0; index < count; index += 1) {
+      var project = state.filtered[index];
+      var date = projectTimelineDate(project);
+      if (!Number.isFinite(date.getTime())) continue;
+
+      var year = date.getFullYear();
+      var month = date.getMonth() + 1;
+      var day = date.getDate();
+      var x = cardCenter(index, metrics);
+      var align = index === 0 ? "start" : (index === count - 1 ? "end" : "center");
+
+      appendTimelineAxisTick(track, x, index);
+
+      var prev = index > 0 ? projectTimelineDate(state.filtered[index - 1]) : null;
+      var prevValid = prev && Number.isFinite(prev.getTime());
+      var prevYear = prevValid ? prev.getFullYear() : null;
+      var prevMonth = prevValid ? prev.getMonth() + 1 : null;
+
+      if (index > 0 && prevValid && year !== prevYear) {
+        var xBetween = (cardCenter(index - 1, metrics) + x) / 2;
+        placeTimelineLabel(
+          track,
+          placements,
+          xBetween,
+          "year",
+          timelineAxisYearHtml(year),
+          ["tick-label-year"],
+          "center",
+          metrics
+        );
+      }
+
+      if (index === 0) {
+        placeTimelineLabel(
+          track,
+          placements,
+          x,
+          "year",
+          timelineAxisYearHtml(year) + timelineAxisMonthHtml(month),
+          ["tick-label-month", "tick-label-year-month"],
+          align,
+          metrics,
+          index
+        );
+      } else if (!prevValid || year !== prevYear || month !== prevMonth) {
+        if (year !== prevYear) {
+          placeTimelineLabel(
+            track,
+            placements,
+            x,
+            "year",
+            timelineAxisYearHtml(year) + timelineAxisMonthHtml(month),
+            ["tick-label-month", "tick-label-year-month"],
+            align,
+            metrics,
+            index
+          );
+        } else {
+          placeTimelineLabel(
+            track,
+            placements,
+            x,
+            "month",
+            timelineAxisMonthHtml(month),
+            ["tick-label-month"],
+            align,
+            metrics,
+            index
+          );
+        }
+      } else {
+        placeTimelineLabel(
+          track,
+          placements,
+          x,
+          "day",
+          '<span class="tick-day-num">' + day + "</span>",
+          ["tick-label-day"],
+          align,
+          metrics,
+          index
+        );
+      }
+    }
+  }
+
+  function updateTickPositions(track, metrics) {
+    renderTicks(track, metrics);
+  }
+
+  function clampTimelineOffset(metrics) {
+    if (!state.filtered.length) return;
+    var viewport = els.timeline.clientWidth || 1000;
+    var leftEdge = metrics.padding;
+    var rightEdge = metrics.padding
+      + Math.max(0, state.filtered.length - 1) * metrics.step
+      + metrics.actualCardWidth;
+    var minOffset = viewport - rightEdge;
+    var maxOffset = -leftEdge;
+    if (minOffset > maxOffset) {
+      var center = (minOffset + maxOffset) / 2;
+      minOffset = center;
+      maxOffset = center;
+    }
+    state.timelineOffset = Math.max(minOffset, Math.min(maxOffset, state.timelineOffset));
+  }
+
+  function updateTimelineLayout(options) {
+    options = options || {};
+    var track = els.timeline.querySelector(".timeline-track");
+    if (!track || !state.filtered.length) {
+      if (state.filtered.length) renderTimeline();
+      return;
+    }
+    els.timeline.classList.toggle("is-scaling", options.animated === false);
+    var metrics = timelineMetrics();
+    state.cachedTimelineMetrics = metrics;
+    clampTimelineOffset(metrics);
+    track.style.width = metrics.trackWidth + "px";
+    updateTickPositions(track, metrics);
+    if (options.animated === false) {
+      track.querySelectorAll(".timeline-card").forEach(function (card) {
+        var index = parseInt(card.dataset.index, 10);
+        if (Number.isFinite(index)) applyCardLayout(card, index, metrics);
+      });
+      scheduleVisibleCardsSyncDelayed(140);
+    } else {
+      syncVisibleTimelineCards(track, metrics, { forceLayout: true });
+    }
+    applyTrackOffset(options.animated !== false);
+    updateStatusSlider();
+    if (scalingClassTimer) clearTimeout(scalingClassTimer);
+    scalingClassTimer = setTimeout(function () {
+      scalingClassTimer = null;
+      if (!timelineLayoutFrame) els.timeline.classList.remove("is-scaling");
+    }, 140);
+  }
+
+  function updateStatusSlider() {
+    if (!els.statusSlider) return;
+    var total = state.filtered.length;
+    if (els.statusSliderCell) els.statusSliderCell.hidden = total === 0;
+    els.statusSlider.disabled = total === 0;
+    els.statusSlider.min = "0";
+    els.statusSlider.max = String(TIMELINE.scaleSteps);
+    var sliderValue = sliderFromTimelineScale(state.timelineScale);
+    els.statusSlider.value = String(sliderValue);
+    els.statusSlider.style.setProperty("--slider-progress", (sliderValue / TIMELINE.scaleSteps * 100) + "%");
+    if (els.statusSliderValue) {
+      els.statusSliderValue.textContent = timelineScaleLabel(state.timelineScale);
+    }
+  }
+
+  function dayKeyFromDate(date) {
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, "0");
+    var day = String(date.getDate()).padStart(2, "0");
+    return year + "-" + month + "-" + day;
+  }
+
+  function dayKeyFromIso(iso) {
+    var date = new Date(iso);
+    if (!Number.isFinite(date.getTime())) return "";
+    return dayKeyFromDate(date);
+  }
+
+  function daysInMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+  }
+
+  function heatmapLevel(count) {
+    if (count <= 0) return 0;
+    if (count === 1) return 1;
+    if (count === 2) return 2;
+    if (count === 3) return 3;
+    return 4;
+  }
+
+  function buildHeatmapBuckets() {
+    var buckets = new Map();
+    state.filtered.forEach(function (project) {
+      var key = dayKeyFromIso(project.lastActiveAt || project.modifiedAt || project.createdAt);
+      if (!key) return;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(project);
+    });
+    buckets.forEach(function (projects) {
+      projects.sort(function (a, b) {
+        return new Date(b.lastActiveAt || b.modifiedAt || 0) - new Date(a.lastActiveAt || a.modifiedAt || 0);
+      });
+    });
+    return buckets;
+  }
+
+  function heatmapProjectRange() {
+    var times = state.filtered.map(function (project) {
+      return projectTimelineDate(project).getTime();
+    }).filter(function (time) {
+      return Number.isFinite(time) && time > 0;
+    });
+    if (!times.length) return null;
+    var minDate = new Date(Math.min.apply(null, times));
+    var maxDate = new Date(Math.max.apply(null, times));
+    return {
+      minYear: minDate.getFullYear(),
+      minMonth: minDate.getMonth(),
+      maxYear: maxDate.getFullYear(),
+      maxMonth: maxDate.getMonth()
+    };
+  }
+
+  function heatmapViewIndex(year, month) {
+    return year * 12 + month;
+  }
+
+  function clampHeatmapView() {
+    var range = heatmapProjectRange();
+    if (!range || state.heatmapViewYear === null || state.heatmapViewMonth === null) return;
+    var idx = heatmapViewIndex(state.heatmapViewYear, state.heatmapViewMonth);
+    var minIdx = heatmapViewIndex(range.minYear, range.minMonth);
+    var maxIdx = heatmapViewIndex(range.maxYear, range.maxMonth);
+    idx = Math.max(minIdx, Math.min(maxIdx, idx));
+    state.heatmapViewYear = Math.floor(idx / 12);
+    state.heatmapViewMonth = idx % 12;
+  }
+
+  function syncHeatmapViewToProject(project) {
+    if (!project) return false;
+    var date = projectTimelineDate(project);
+    if (!Number.isFinite(date.getTime())) return false;
+    state.heatmapViewYear = date.getFullYear();
+    state.heatmapViewMonth = date.getMonth();
+    clampHeatmapView();
+    return true;
+  }
+
+  function syncHeatmapViewToRangeMax() {
+    var range = heatmapProjectRange();
+    if (!range) return false;
+    state.heatmapViewYear = range.maxYear;
+    state.heatmapViewMonth = range.maxMonth;
+    return true;
+  }
+
+  function ensureHeatmapViewInitialized() {
+    if (state.heatmapViewYear !== null && state.heatmapViewMonth !== null) {
+      clampHeatmapView();
+      return;
+    }
+    if (!syncHeatmapViewToProject(heroProject())) syncHeatmapViewToRangeMax();
+  }
+
+  function syncHeatmapViewFromTimelineFilters() {
+    if (!els.timelineYearSelect || !els.timelineMonthSelect) return false;
+    if (!state.filtered.length || els.timelineYearSelect.disabled) return false;
+    var year = parseInt(els.timelineYearSelect.value, 10);
+    var month = parseInt(els.timelineMonthSelect.value, 10);
+    if (!Number.isFinite(year) || !Number.isFinite(month)) return false;
+    state.heatmapViewYear = year;
+    state.heatmapViewMonth = month;
+    clampHeatmapView();
+    return true;
+  }
+
+  function shiftHeatmapMonth(delta) {
+    var range = heatmapProjectRange();
+    if (!range || !delta) return false;
+    if (!syncHeatmapViewFromTimelineFilters()) ensureHeatmapViewInitialized();
+    var idx = heatmapViewIndex(state.heatmapViewYear, state.heatmapViewMonth) + delta;
+    var minIdx = heatmapViewIndex(range.minYear, range.minMonth);
+    var maxIdx = heatmapViewIndex(range.maxYear, range.maxMonth);
+    if (idx < minIdx || idx > maxIdx) return false;
+    var year = Math.floor(idx / 12);
+    var month = idx % 12;
+    state.timelinePeriodSyncLock = true;
+    populateTimelineYearSelect(year);
+    populateTimelineMonthSelect(year, month);
+    state.timelinePeriodSyncLock = false;
+    navigateToTimelinePeriod(year, month);
+    return true;
+  }
+
+  function buildHeatmapMonthGrid(year, monthIndex, buckets) {
+    var totalDays = daysInMonth(year, monthIndex);
+    var leading = new Date(year, monthIndex, 1).getDay();
+    var cells = [];
+    var pad;
+
+    for (pad = 0; pad < leading; pad += 1) cells.push(null);
+    for (var day = 1; day <= totalDays; day += 1) {
+      var date = new Date(year, monthIndex, day);
+      var key = dayKeyFromDate(date);
+      cells.push({
+        date: date,
+        key: key,
+        day: day,
+        projects: buckets.get(key) || []
+      });
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    return {
+      year: year,
+      month: monthIndex + 1,
+      label: (monthIndex + 1) + "月",
+      cells: cells
+    };
+  }
+
+  function formatHeatmapDayLabel(date) {
+    return new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "short"
+    }).format(date);
+  }
+
+  function hideHeatmapTooltip() {
+    state.heatmapHoverDay = "";
+    if (!els.heatmapTooltip) return;
+    els.heatmapTooltip.hidden = true;
+    els.heatmapTooltip.innerHTML = "";
+    if (els.heatmap) {
+      els.heatmap.querySelectorAll(".heatmap-cell.is-hover").forEach(function (cell) {
+        cell.classList.remove("is-hover");
+      });
+    }
+  }
+
+  function positionHeatmapTooltip(cell) {
+    if (!els.heatmapTooltip || els.heatmapTooltip.hidden) return;
+    var rect = cell.getBoundingClientRect();
+    var tooltipRect = els.heatmapTooltip.getBoundingClientRect();
+    var left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    var top = rect.top - tooltipRect.height - 10;
+    if (top < 8) top = rect.bottom + 10;
+    left = Math.max(8, Math.min(window.innerWidth - tooltipRect.width - 8, left));
+    top = Math.max(8, Math.min(window.innerHeight - tooltipRect.height - 8, top));
+    els.heatmapTooltip.style.left = left + "px";
+    els.heatmapTooltip.style.top = top + "px";
+  }
+
+  function showHeatmapTooltip(cell, cellData) {
+    if (!els.heatmapTooltip || !cellData) return;
+    var projects = cellData.projects || [];
+    state.heatmapHoverDay = cellData.key;
+    if (els.heatmap) {
+      els.heatmap.querySelectorAll(".heatmap-cell.is-hover").forEach(function (item) {
+        item.classList.remove("is-hover");
+      });
+      cell.classList.add("is-hover");
+    }
+
+    var html = [
+      '<div class="heatmap-tooltip-date">' + formatHeatmapDayLabel(cellData.date) + "</div>",
+      '<div class="heatmap-tooltip-count">' + (projects.length ? projects.length + " 个项目" : "当天无项目") + "</div>"
+    ];
+    if (projects.length) {
+      html.push('<ul class="heatmap-tooltip-list">');
+      projects.slice(0, HEATMAP_TOOLTIP_LIMIT).forEach(function (project) {
+        html.push("<li>" + escapeHtml(projectDisplayTitle(project)) + "</li>");
+      });
+      html.push("</ul>");
+      if (projects.length > HEATMAP_TOOLTIP_LIMIT) {
+        html.push('<div class="heatmap-tooltip-more">还有 ' + (projects.length - HEATMAP_TOOLTIP_LIMIT) + " 个项目</div>");
+      }
+    }
+    els.heatmapTooltip.innerHTML = html.join("");
+    els.heatmapTooltip.hidden = false;
+    requestAnimationFrame(function () {
+      positionHeatmapTooltip(cell);
+    });
+  }
+
+  function bindHeatmapCellEvents(cell, cellData) {
+    cell.addEventListener("mouseenter", function () {
+      showHeatmapTooltip(cell, cellData);
+    });
+    cell.addEventListener("mouseleave", function () {
+      hideHeatmapTooltip();
+    });
+    cell.addEventListener("focus", function () {
+      showHeatmapTooltip(cell, cellData);
+    });
+    cell.addEventListener("blur", function () {
+      hideHeatmapTooltip();
+    });
+    cell.addEventListener("click", function () {
+      if (!cellData.projects.length) return;
+      var targetId = cellData.projects[0].id;
+      var index = state.filtered.findIndex(function (project) {
+        return project.id === targetId;
+      });
+      if (index >= 0) selectIndex(index, { center: true });
+    });
+  }
+
+  function createHeatmapCell(cellData) {
+    if (!cellData) {
+      var spacer = document.createElement("span");
+      spacer.className = "heatmap-cell-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      return spacer;
+    }
+
+    var count = cellData.projects.length;
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "heatmap-cell level-" + heatmapLevel(count);
+    if (!count) button.classList.add("is-muted");
+    if (cellData.key === dayKeyFromDate(new Date())) button.classList.add("is-today");
+    button.dataset.day = cellData.key;
+    button.textContent = String(cellData.day);
+    button.setAttribute(
+      "aria-label",
+      formatHeatmapDayLabel(cellData.date) + (count ? "，" + count + " 个项目" : "，无项目")
+    );
+    bindHeatmapCellEvents(button, cellData);
+    return button;
+  }
+
+  function renderHeatmap(options) {
+    options = options || {};
+    if (!els.heatmap || !els.heatmapPanel) return;
+    hideHeatmapTooltip();
+    els.heatmap.innerHTML = "";
+    els.heatmapPanel.classList.toggle("is-collapsed", state.heatmapCollapsed);
+    if (els.heatmapToggle) {
+      els.heatmapToggle.setAttribute("aria-expanded", state.heatmapCollapsed ? "false" : "true");
+      els.heatmapToggle.setAttribute("aria-label", state.heatmapCollapsed ? "展开热力图" : "折叠热力图");
+    }
+
+    if (state.heatmapCollapsed || !state.filtered.length) {
+      if (!state.heatmapCollapsed && !state.filtered.length) {
+        els.heatmap.innerHTML = '<div class="heatmap-empty">无数据</div>';
+      }
+      return;
+    }
+
+    if (options.syncToSelection) {
+      syncHeatmapViewToProject(heroProject());
+    } else if (!syncHeatmapViewFromTimelineFilters()) {
+      ensureHeatmapViewInitialized();
+    }
+    clampHeatmapView();
+
+    var buckets = buildHeatmapBuckets();
+    var monthBlock = buildHeatmapMonthGrid(state.heatmapViewYear, state.heatmapViewMonth, buckets);
+    var weekdayLabels = ["日", "一", "二", "三", "四", "五", "六"];
+
+    var root = document.createElement("div");
+    root.className = "heatmap-calendar heatmap-calendar-single";
+
+    var monthSection = document.createElement("section");
+    monthSection.className = "heatmap-month";
+
+    var weekdays = document.createElement("div");
+    weekdays.className = "heatmap-month-weekdays";
+    weekdayLabels.forEach(function (label) {
+      var item = document.createElement("span");
+      item.textContent = label;
+      weekdays.appendChild(item);
+    });
+    monthSection.appendChild(weekdays);
+
+    var grid = document.createElement("div");
+    grid.className = "heatmap-month-grid";
+    monthBlock.cells.forEach(function (cellData) {
+      grid.appendChild(createHeatmapCell(cellData));
+    });
+    monthSection.appendChild(grid);
+    root.appendChild(monthSection);
+    els.heatmap.appendChild(root);
+  }
+
+  function toggleHeatmapPanel() {
+    state.heatmapCollapsed = !state.heatmapCollapsed;
+    localStorage.setItem("designtrace:heatmapCollapsed", state.heatmapCollapsed ? "1" : "0");
+    renderHeatmap();
+  }
+
+  function renderStatusBar() {
+    if (!els.statusPath || !els.statusFile || !els.statusStats || !els.statusDates) return;
+    updateStatusSlider();
+
+    els.statusFile.textContent = "";
+    els.statusStats.textContent = "";
+    els.statusDates.textContent = "";
+    if (els.statusbar) els.statusbar.classList.remove("is-preview");
+
+    var project = heroProject();
+    if (!project) {
+      els.statusPath.textContent = state.statusMessage
+        || (state.rootName
+          ? state.rootName + " · " + state.projects.length + " 件作品"
+          : "选择一个文件夹，开始留下创作轨迹。");
+      if (els.statusbar) els.statusbar.classList.toggle("is-status-notice", !!state.statusMessage);
+      if (!state.statusMessage && state.rootName) {
+        els.statusStats.textContent = "本地读取，未上传。";
+      }
+      syncStatusPathCopyable();
+      return;
+    }
+
+    var preview = state.heroCurrentFile || previewFile(project);
+    if (state.statusMessage) {
+      els.statusPath.textContent = state.statusMessage;
+      if (els.statusbar) els.statusbar.classList.add("is-status-notice");
+    } else {
+      els.statusPath.textContent = formatDisplayPath(project.path);
+      if (els.statusbar) els.statusbar.classList.remove("is-status-notice");
+    }
+    if (preview) {
+      var fileText = preview.name + " · " + formatBytes(preview.sizeBytes);
+      if (state.heroImageDims && state.heroImageDims.path === preview.path) {
+        fileText += " · " + state.heroImageDims.w + "×" + state.heroImageDims.h + " px";
+      }
+      els.statusFile.textContent = fileText;
+    } else {
+      els.statusFile.textContent = "";
+    }
+    els.statusStats.textContent = [
+      project.projectType,
+      project.fileCount + " 个文件",
+      project.folderCount + " 个文件夹",
+      formatBytes(project.sizeBytes)
+    ].join(" · ");
+    els.statusDates.textContent = [
+      "最近 " + formatDate(project.lastActiveAt, true),
+      "修改 " + formatDate(project.modifiedAt, true),
+      "创建 " + formatDate(project.createdAt, true)
+    ].join(" · ");
+    if (els.statusbar) {
+      els.statusbar.classList.remove("is-preview");
+    }
+    syncStatusPathCopyable();
+  }
+
+  function statusPathCanCopy() {
+    if (state.statusMessage) return null;
+    var project = heroProject();
+    return project && project.path ? project : null;
+  }
+
+  function syncStatusPathCopyable() {
+    if (!els.statusPath) return;
+    var copyProject = statusPathCanCopy();
+    els.statusPath.classList.toggle("is-copyable", !!copyProject);
+    if (copyProject) {
+      els.statusPath.title = formatDisplayPath(copyProject.path) + "\n点击复制路径";
+      els.statusPath.setAttribute("role", "button");
+    } else {
+      els.statusPath.removeAttribute("title");
+      els.statusPath.removeAttribute("role");
+    }
+  }
+
+  async function handleStatusPathClick() {
+    var project = statusPathCanCopy();
+    if (!project) return;
+    var copied = await copyProjectPath(project);
+    showFolderActionStatus(copied ? "复制成功" : "复制路径失败");
+  }
+
+  function renderTimeline() {
+    state.timelineRenderGeneration += 1;
+    hideThumbGridTooltip();
+    els.timeline.innerHTML = "";
+    if (!state.filtered.length) {
+      var emptyMessage = state.projects.length
+        ? "当前筛选条件下没有作品。"
+        : "选择文件夹后，项目会按时间排列在这里。";
+      els.timeline.innerHTML = '<div class="empty-state">' + emptyMessage + "</div>";
+      return;
+    }
+
+    var metrics = timelineMetrics();
+    state.cachedTimelineMetrics = metrics;
+    clampTimelineOffset(metrics);
+    var track = document.createElement("div");
+    track.className = "timeline-track";
+    track.style.width = metrics.trackWidth + "px";
+    applyTrackOffset(false);
+
+    var axis = document.createElement("div");
+    axis.className = "timeline-axis";
+    track.appendChild(axis);
+    renderTicks(track, metrics);
+    els.timeline.appendChild(track);
+    syncVisibleTimelineCards(track, metrics);
+    centerActiveThumb(false);
+    updateStatusSlider();
+  }
+
+  function timelineTimeRange() {
+    if (state.timelineTimeRangeCache) return state.timelineTimeRangeCache;
+    var times = state.filtered.map(function (project) {
+      return projectTimelineDate(project).getTime();
+    }).filter(function (time) {
+      return Number.isFinite(time) && time > 0;
+    });
+    var min = Math.min.apply(null, times);
+    var max = Math.max.apply(null, times);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) {
+      min = Date.now() - 86400000 * 7;
+      max = Date.now() + 86400000 * 7;
+    }
+    state.timelineTimeRangeCache = { min: min, max: max };
+    return state.timelineTimeRangeCache;
+  }
+
+  function clampOffsetValue(metrics, offsetValue) {
+    if (!state.filtered.length) return offsetValue;
+    var viewport = els.timeline.clientWidth || 1000;
+    var leftEdge = metrics.padding;
+    var rightEdge = metrics.padding
+      + Math.max(0, state.filtered.length - 1) * metrics.step
+      + metrics.actualCardWidth;
+    var minOffset = viewport - rightEdge;
+    var maxOffset = -leftEdge;
+    if (minOffset > maxOffset) {
+      var center = (minOffset + maxOffset) / 2;
+      minOffset = center;
+      maxOffset = center;
+    }
+    return Math.max(minOffset, Math.min(maxOffset, offsetValue));
+  }
+
+  function timelineCardDimensions(metrics) {
+    var step = metrics.step;
+    var actualCardWidth = Math.min(TIMELINE.cardWidth, step);
+    actualCardWidth = Math.max(TIMELINE.minStep, actualCardWidth);
+    var minimal = actualCardWidth <= TIMELINE.minimalWidth;
+    var narrow = !minimal && step < TIMELINE.cardWidth;
+    var thumbHeight;
+    if (minimal) {
+      thumbHeight = Math.max(TIMELINE.minThumbHeightMinimal, actualCardWidth);
+    } else if (narrow) {
+      thumbHeight = Math.max(TIMELINE.minThumbHeight, Math.round(88 * actualCardWidth / TIMELINE.cardWidth));
+    } else {
+      thumbHeight = 88;
+    }
+    var metaHeight = minimal ? 0 : (narrow ? Math.max(24, Math.round(TIMELINE.metaHeight * actualCardWidth / TIMELINE.cardWidth)) : TIMELINE.metaHeight);
+    return {
+      actualCardWidth: actualCardWidth,
+      thumbHeight: thumbHeight,
+      cardHeight: thumbHeight + metaHeight,
+      narrow: narrow,
+      minimal: minimal
+    };
+  }
+
+  function timelineLayout() {
+    var count = state.filtered.length;
+    var fullStep = TIMELINE.cardWidth + TIMELINE.cardGap;
+    var idealWidth = TIMELINE.padding * 2 + TIMELINE.cardWidth + Math.max(0, count - 1) * fullStep;
+    var viewport = els.timeline.clientWidth || 1000;
+    var scaledIdeal = idealWidth * state.timelineScale;
+    var minTrackWidth = TIMELINE.padding * 2 + TIMELINE.minStep + Math.max(0, count - 1) * TIMELINE.minStep;
+    var trackWidth = Math.max(scaledIdeal, minTrackWidth);
+    if (count <= 1) trackWidth = Math.max(trackWidth, viewport);
+    var span = trackWidth - TIMELINE.padding * 2 - TIMELINE.cardWidth;
+    var step = count > 1 ? span / (count - 1) : fullStep;
+
+    step = Math.min(fullStep, Math.max(TIMELINE.minStep, step));
+
+    var dimensions = timelineCardDimensions({ step: step });
+    var actualWidth = TIMELINE.padding * 2 + dimensions.actualCardWidth + Math.max(0, count - 1) * step;
+
+    return Object.assign({
+      trackWidth: actualWidth,
+      step: step,
+      padding: TIMELINE.padding,
+      cardWidth: TIMELINE.cardWidth
+    }, dimensions);
+  }
+
+  function timelineMetrics() {
+    return Object.assign(timelineLayout(), timelineTimeRange());
+  }
+
+  function cardLeft(index, metrics) {
+    return metrics.padding + index * metrics.step;
+  }
+
+  function cardCenter(index, metrics) {
+    return cardLeft(index, metrics) + metrics.actualCardWidth / 2;
+  }
+
+  function timeToX(time, metrics) {
+    var span = metrics.max - metrics.min || 1;
+    return metrics.padding + ((time - metrics.min) / span) * Math.max(1, metrics.trackWidth - metrics.padding * 2);
+  }
+
+  function folderActionIcon(mode) {
+    if (mode === "copy") {
+      return [
+        '<svg viewBox="0 0 24 24" aria-hidden="true">',
+        '<rect x="9" y="9" width="11" height="11" rx="1.5" />',
+        '<path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" />',
+        "</svg>"
+      ].join("");
+    }
+    return [
+      '<svg viewBox="0 0 24 24" aria-hidden="true">',
+      '<path d="M4 8.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.5" />',
+      '<path d="M4 8.5h16V7a2 2 0 0 0-2-2h-5.2L11.4 3H6a2 2 0 0 0-2 2v3.5Z" />',
+      '<path d="M12 11v4M10 13h4" />',
+      "</svg>"
+    ].join("");
+  }
+
+  function canRevealProjectFolder(project) {
+    return !!(project && project.directoryHandle && "queryPermission" in project.directoryHandle);
+  }
+
+  async function tryRevealProjectFolder(project) {
+    if (!canRevealProjectFolder(project)) return false;
+    try {
+      var permission = await project.directoryHandle.queryPermission({ mode: "read" });
+      if (permission !== "granted") {
+        permission = await project.directoryHandle.requestPermission({ mode: "read" });
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function copyProjectPath(project) {
+    if (!project || !project.path) return false;
+    var clipboardPath = formatDisplayPath(project.path);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(clipboardPath);
+        return true;
+      }
+    } catch (error) {
+      /* fall through */
+    }
+    try {
+      var helper = document.createElement("textarea");
+      helper.value = clipboardPath;
+      helper.setAttribute("readonly", "");
+      helper.style.position = "fixed";
+      helper.style.left = "-9999px";
+      document.body.appendChild(helper);
+      helper.select();
+      var copied = document.execCommand("copy");
+      document.body.removeChild(helper);
+      return copied;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  var folderActionTimer = null;
+
+  function showFolderActionStatus(message) {
+    if (folderActionTimer) clearTimeout(folderActionTimer);
+    setStatus(message);
+    folderActionTimer = setTimeout(function () {
+      state.statusMessage = "";
+      renderStatusBar();
+      folderActionTimer = null;
+    }, 2200);
+  }
+
+  async function handleProjectFolderAction(project, actionButton) {
+    if (!project) return;
+    var opened = await tryRevealProjectFolder(project);
+    if (opened) {
+      if (actionButton) {
+        actionButton.dataset.mode = "open";
+        actionButton.innerHTML = folderActionIcon("open");
+        actionButton.title = "打开文件夹";
+        actionButton.setAttribute("aria-label", "打开文件夹");
+      }
+      showFolderActionStatus("已打开文件夹");
+      return;
+    }
+    var copied = await copyProjectPath(project);
+    if (actionButton) {
+      actionButton.dataset.mode = "copy";
+      actionButton.innerHTML = folderActionIcon("copy");
+      actionButton.title = "复制文件夹路径";
+      actionButton.setAttribute("aria-label", "复制文件夹路径");
+    }
+    showFolderActionStatus(copied ? "复制成功" : "复制路径失败");
+  }
+
+  function timelineCardMarkup(project, options) {
+    options = options || {};
+    var images = timelineDisplayImages(project);
+    var lazyPending = images.length && options.lazyThumb;
+    var folderMode = canRevealProjectFolder(project) ? "open" : "copy";
+    var folderLabel = folderMode === "open" ? "打开文件夹" : "复制文件夹路径";
+    return [
+      '<div class="thumb' + (lazyPending ? " is-loading" : "") + '">',
+      lazyPending ? '<span class="thumb-spinner" aria-hidden="true"></span>' : "",
+      timelineThumbContent(project, options),
+      '<button type="button" class="timeline-folder-action" data-mode="' + folderMode + '" aria-label="' + folderLabel + '" title="' + folderLabel + '">',
+      folderActionIcon(folderMode),
+      "</button>",
+      "</div>",
+      '<div class="thumb-meta">',
+      '<div class="thumb-title">' + escapeHtml(projectDisplayTitle(project)) + "</div>",
+      timelineDesignIconsMarkup(project),
+      "</div>"
+    ].join("");
+  }
+
+  function hydrateTimelineCardThumb(card, project) {
+    var lazyImages = card.querySelectorAll("img.timeline-thumb-lazy");
+    if (!lazyImages.length) return;
+    var previews = timelineDisplayImages(project);
+    if (!previews.length) return;
+    var thumb = card.querySelector(".thumb");
+    var pending = 0;
+    var settle = function () {
+      pending -= 1;
+      if (pending <= 0 && thumb) thumb.classList.remove("is-loading");
+    };
+    lazyImages.forEach(function (img, index) {
+      if (img.getAttribute("src")) return;
+      var preview = previews[index];
+      if (!preview) return;
+      if (preview.file) scheduleImageDimensions(preview.file, preview.path);
+      pending += 1;
+      thumbUrl(preview.file, preview.path).then(function (url) {
+        if (!img.isConnected) {
+          settle();
+          return;
+        }
+        img.addEventListener("load", function () {
+          img.classList.remove("timeline-thumb-lazy");
+          settle();
+        }, { once: true });
+        img.addEventListener("error", settle, { once: true });
+        img.src = url;
+      }).catch(settle);
+    });
+    if (pending === 0 && thumb) thumb.classList.remove("is-loading");
+  }
+
+  function centerActiveThumb(animated) {
+    if (!state.filtered.length) return;
+    var metrics = timelineMetrics();
+    var x = cardCenter(state.selectedIndex, metrics);
+    state.timelineOffset = els.timeline.clientWidth / 2 - x;
+    applyTrackOffset(animated !== false);
+  }
+
+  function applyTrackOffset(animated) {
+    var track = els.timeline.querySelector(".timeline-track");
+    if (!track) return;
+    if (state.filtered.length) {
+      var metrics = state.cachedTimelineMetrics || timelineMetrics();
+      clampTimelineOffset(metrics);
+    }
+    track.classList.toggle("is-dragging", state.dragging || animated === false);
+    track.style.transform = "translateX(" + state.timelineOffset + "px)";
+    if (els.timeline.classList.contains("is-scaling")) {
+      scheduleVisibleCardsSyncDelayed(140);
+    } else {
+      scheduleVisibleCardsSync();
+    }
+    if (animated === false) {
+      requestAnimationFrame(function () {
+        if (!state.dragging) track.classList.remove("is-dragging");
+      });
+    }
+    syncTimelinePeriodFiltersFromViewport();
+  }
+
+  function renderControls() {
+    els.prevButton.disabled = state.filtered.length < 2;
+    els.nextButton.disabled = state.filtered.length < 2;
+    els.rescanButton.disabled = !state.files && !state.rootHandle;
+    if (state.slideshowFullscreen && !state.filtered.length) exitSlideshowFullscreen();
+    if (els.slideshowFullscreenButton) {
+      els.slideshowFullscreenButton.disabled = !state.filtered.length || state.scanning;
+    }
+  }
+
+  function updateSlideshowFullscreenButton() {
+    if (!els.slideshowFullscreenButton) return;
+    var active = state.slideshowFullscreen;
+    els.slideshowFullscreenButton.classList.toggle("is-active", active);
+    els.slideshowFullscreenButton.setAttribute("aria-label", active ? "退出幻灯片全屏" : "幻灯片全屏");
+    els.slideshowFullscreenButton.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+
+  function enterSlideshowFullscreen() {
+    if (!state.filtered.length || state.scanning || state.slideshowFullscreen) return;
+    state.slideshowFullscreen = true;
+    if (els.appShell) els.appShell.classList.add("is-slideshow-fullscreen");
+    document.documentElement.classList.add("is-slideshow-fullscreen");
+    updateSlideshowFullscreenButton();
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    }
+    if (!state.autoplayEnabled) state.autoplayEnabled = true;
+    ensureAutoplay();
+  }
+
+  function exitSlideshowFullscreen(options) {
+    options = options || {};
+    if (!state.slideshowFullscreen) return;
+    state.slideshowFullscreen = false;
+    if (els.appShell) els.appShell.classList.remove("is-slideshow-fullscreen");
+    document.documentElement.classList.remove("is-slideshow-fullscreen");
+    updateSlideshowFullscreenButton();
+    if (!options.skipNativeExit && document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+    if (state.autoplayEnabled) ensureAutoplay();
+  }
+
+  function toggleSlideshowFullscreen() {
+    if (state.slideshowFullscreen) exitSlideshowFullscreen();
+    else enterSlideshowFullscreen();
+  }
+
+  function setStatus(message) {
+    state.statusMessage = message || "";
+    renderStatusBar();
+  }
+
+  function setScanProgress(message) {
+    if (!els.scanOverlay) return;
+    var now = Date.now();
+    if (!els.scanOverlay.classList.contains("active")) {
+      els.scanOverlay.classList.add("active");
+      scanUiLastAt = 0;
+    }
+    if (message && now - scanUiLastAt < 180) return;
+    scanUiLastAt = now;
+    if (message && els.scanText) els.scanText.textContent = message;
+  }
+
+  function setScanning(active, message) {
+    if (!els.scanOverlay) return;
+    if (active && state.slideshowFullscreen) exitSlideshowFullscreen();
+    state.scanning = !!active;
+    if (els.appShell) els.appShell.classList.toggle("is-scanning", state.scanning);
+    if (active) {
+      setScanProgress(message);
+      updateShowcaseLayout(false);
+      if (els.projectInfo) els.projectInfo.classList.remove("is-ready");
+      return;
+    }
+    els.scanOverlay.classList.remove("active");
+    scanUiLastAt = 0;
+  }
+
+  function resolveHeroImageLoadWaiters() {
+    if (!heroImageLoadWaiters.length) return;
+    var waiters = heroImageLoadWaiters.slice();
+    heroImageLoadWaiters = [];
+    waiters.forEach(function (waiter) {
+      waiter();
+    });
+  }
+
+  function waitForHeroImageSettled() {
+    return new Promise(function (resolve) {
+      if (!heroArtworkLoadingGen) {
+        resolve();
+        return;
+      }
+      var timeout = setTimeout(function () {
+        heroArtworkLoadingGen = null;
+        resolve();
+      }, 12000);
+      heroImageLoadWaiters.push(function () {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+  }
+
+  function scheduleFullscreenAutoplayStep(displayDelay) {
+    if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+    state.autoplay = setTimeout(function () {
+      state.autoplay = null;
+      if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+      if (state.timelineHovering || state.hoverIndex !== null) {
+        scheduleFullscreenAutoplayStep(AUTOPLAY_HOVER_RETRY);
+        return;
+      }
+      selectIndex(state.selectedIndex + 1, { center: true });
+      waitForHeroImageSettled().then(function () {
+        if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+        scheduleFullscreenAutoplayStep(AUTOPLAY_INTERVAL);
+      });
+    }, displayDelay);
+  }
+
+  function toggleAutoplay() {
+    state.autoplayEnabled = !state.autoplayEnabled;
+    if (!state.autoplayEnabled) {
+      stopAutoplay();
+      setPlayButton(false);
+      return;
+    }
+    ensureAutoplay();
+  }
+
+  function stopAutoplay() {
+    if (!state.autoplay) return;
+    clearInterval(state.autoplay);
+    clearTimeout(state.autoplay);
+    state.autoplay = null;
+  }
+
+  function ensureAutoplay() {
+    stopAutoplay();
+    if (!state.autoplayEnabled || state.filtered.length < 2) {
+      setPlayButton(false);
+      return;
+    }
+    setPlayButton(true);
+    if (state.slideshowFullscreen) {
+      waitForHeroImageSettled().then(function () {
+        if (!state.autoplayEnabled || !state.slideshowFullscreen) return;
+        scheduleFullscreenAutoplayStep(AUTOPLAY_INTERVAL);
+      });
+      return;
+    }
+    state.autoplay = setInterval(function () {
+      if (state.timelineHovering || state.hoverIndex !== null) return;
+      selectIndex(state.selectedIndex + 1, { center: true });
+    }, AUTOPLAY_INTERVAL);
+  }
+
+  function setPlayButton(playing) {
+    els.autoplayButton.classList.toggle("playing", playing);
+    els.autoplayButton.setAttribute("aria-label", playing ? "暂停时间轴" : "播放时间轴");
+  }
+  function bindEvents() {
+    window.addEventListener(
+      "wheel",
+      function (event) {
+        if (event.ctrlKey || event.metaKey) event.preventDefault();
+      },
+      { passive: false }
+    );
+
+    if (els.heatmapToggle) {
+      els.heatmapToggle.addEventListener("click", toggleHeatmapPanel);
+    }
+    var heatmapBody = els.heatmapPanel && els.heatmapPanel.querySelector(".heatmap-panel-body");
+    if (heatmapBody) {
+      heatmapBody.addEventListener("wheel", function (event) {
+        if (state.heatmapCollapsed || !state.filtered.length || heatmapWheelLock) return;
+        event.preventDefault();
+        event.stopPropagation();
+        heatmapWheelLock = true;
+        var direction = event.deltaY > 0 || event.deltaX > 0 ? 1 : -1;
+        if (!shiftHeatmapMonth(direction)) heatmapWheelLock = false;
+        else {
+          setTimeout(function () {
+            heatmapWheelLock = false;
+          }, HEATMAP_WHEEL_COOLDOWN);
+        }
+      }, { passive: false });
+    }
+    window.addEventListener("scroll", function () {
+      hideHeatmapTooltip();
+      hideThumbGridTooltip();
+    }, true);
+
+    if (els.timelineYearSelect) els.timelineYearSelect.addEventListener("change", onTimelineYearChange);
+    if (els.timelineMonthSelect) els.timelineMonthSelect.addEventListener("change", onTimelineMonthChange);
+
+    els.pickDirectoryButton.addEventListener("click", pickDirectory);
+    els.rescanButton.addEventListener("click", rescan);
+    els.themeButton.addEventListener("click", toggleTheme);
+    els.searchInput.addEventListener("input", applyFilters);
+    if (els.scopeFilterSelect) els.scopeFilterSelect.addEventListener("change", applyFilters);
+    if (els.extFilterTrigger) {
+      els.extFilterTrigger.addEventListener("click", function (event) {
+        event.stopPropagation();
+        setExtFilterOpen(!els.extFilter.classList.contains("is-open"));
+      });
+    }
+    if (els.extFilterMenu) {
+      els.extFilterMenu.addEventListener("change", function (event) {
+        if (event.target.type !== "checkbox") return;
+        if (event.target.value === "all" && event.target.checked) {
+          Array.from(els.extFilterMenu.querySelectorAll('input[type="checkbox"]')).forEach(function (input) {
+            if (input.value !== "all") input.checked = false;
+          });
+        } else if (event.target.checked) {
+          var allInput = els.extFilterMenu.querySelector('input[value="all"]');
+          if (allInput) allInput.checked = false;
+        }
+        syncExtFilterSelection();
+        applyFilters();
+      });
+    }
+    document.addEventListener("click", function (event) {
+      if (els.extFilter && !els.extFilter.contains(event.target)) setExtFilterOpen(false);
+    });
+    if (els.sizeFilterSelect) els.sizeFilterSelect.addEventListener("change", applyFilters);
+    els.prevButton.addEventListener("click", function () {
+      selectIndex(state.selectedIndex - 1);
+    });
+    els.nextButton.addEventListener("click", function () {
+      selectIndex(state.selectedIndex + 1);
+    });
+    if (els.statusSlider) {
+      els.statusSlider.addEventListener("input", function () {
+        if (!state.filtered.length || els.statusSlider.disabled) return;
+        setTimelineScale(timelineScaleFromSlider(parseInt(els.statusSlider.value, 10)));
+      });
+    }
+    if (els.statusPath) {
+      els.statusPath.addEventListener("click", function () {
+        handleStatusPathClick();
+      });
+    }
+    var heroWheelLock = false;
+    if (els.heroArtwork) {
+      els.heroArtwork.addEventListener("wheel", function (event) {
+        if (!state.filtered.length || heroWheelLock) return;
+        event.preventDefault();
+        heroWheelLock = true;
+        selectIndex(state.selectedIndex + (event.deltaY > 0 || event.deltaX > 0 ? 1 : -1));
+        setTimeout(function () {
+          heroWheelLock = false;
+        }, 260);
+      }, { passive: false });
+    }
+    var heroThumbWheelLock = false;
+    els.heroThumbs.addEventListener(
+      "wheel",
+      function (event) {
+        if (!state.filtered.length || heroThumbWheelLock) return;
+        var direction = event.deltaY > 0 || event.deltaX > 0 ? 1 : -1;
+        event.preventDefault();
+        event.stopPropagation();
+        heroThumbWheelLock = true;
+        if (!stepHeroThumb(direction)) heroThumbWheelLock = false;
+        else {
+          setTimeout(function () {
+            heroThumbWheelLock = false;
+          }, 260);
+        }
+      },
+      { passive: false }
+    );
+    els.autoplayButton.addEventListener("click", toggleAutoplay);
+    if (els.slideshowFullscreenButton) {
+      els.slideshowFullscreenButton.addEventListener("click", toggleSlideshowFullscreen);
+    }
+    document.addEventListener("fullscreenchange", function () {
+      if (!document.fullscreenElement && state.slideshowFullscreen) {
+        exitSlideshowFullscreen({ skipNativeExit: true });
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      if (!state.slideshowFullscreen || event.code !== "Space") return;
+      if (event.target && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA" || event.target.isContentEditable)) {
+        return;
+      }
+      event.preventDefault();
+      exitSlideshowFullscreen();
+    });
+    els.timeline.addEventListener("mouseenter", function () {
+      state.timelineHovering = true;
+    });
+    els.timeline.addEventListener("mouseleave", function () {
+      state.timelineHovering = false;
+      clearTimelineHover();
+    });
+
+    els.timeline.addEventListener("pointerdown", function (event) {
+      if (event.button !== 0) return;
+      if (event.target.closest(".timeline-card")) return;
+      state.dragging = false;
+      state.dragMoved = false;
+      state.dragPointerId = event.pointerId;
+      state.dragStartX = event.clientX;
+      state.dragStartOffset = state.timelineOffset;
+      els.timeline.setPointerCapture(event.pointerId);
+    });
+    els.timeline.addEventListener("pointermove", function (event) {
+      if (event.pointerId !== state.dragPointerId) return;
+      if (!state.dragMoved && Math.abs(event.clientX - state.dragStartX) > 5) {
+        state.dragMoved = true;
+        state.dragging = true;
+        hideThumbGridTooltip();
+        els.timeline.classList.add("dragging");
+      }
+      if (!state.dragging) return;
+      state.timelineOffset = state.dragStartOffset + event.clientX - state.dragStartX;
+      applyTrackOffset(false);
+    });
+    els.timeline.addEventListener("pointerup", function (event) {
+      if (event.pointerId !== state.dragPointerId) return;
+      var didMove = state.dragMoved;
+      if (state.dragging) {
+        els.timeline.classList.remove("dragging");
+        if (els.timeline.hasPointerCapture(event.pointerId)) {
+          els.timeline.releasePointerCapture(event.pointerId);
+        }
+      }
+      state.dragging = false;
+      state.dragMoved = false;
+      state.dragPointerId = null;
+      if (didMove) state.lastDragReleaseAt = Date.now();
+      applyTrackOffset(true);
+    });
+    els.timeline.addEventListener("pointercancel", function (event) {
+      if (event.pointerId !== state.dragPointerId) return;
+      state.dragging = false;
+      state.dragMoved = false;
+      state.dragPointerId = null;
+      els.timeline.classList.remove("dragging");
+    });
+    els.timeline.addEventListener("wheel", function (event) {
+      hideThumbGridTooltip();
+      event.preventDefault();
+      if (event.ctrlKey || event.metaKey) {
+        var rect = els.timeline.getBoundingClientRect();
+        var pointerX = event.clientX - rect.left;
+        var factor = event.deltaY > 0 ? 0.9 : 1.12;
+        setTimelineScale(state.timelineScale * factor, pointerX);
+        return;
+      }
+
+      var beforeOffset = state.timelineOffset;
+      var delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      var metrics = state.cachedTimelineMetrics || timelineMetrics();
+      var nextOffset = clampOffsetValue(metrics, state.timelineOffset - delta);
+      if (nextOffset === beforeOffset) return;
+      state.timelineOffset = nextOffset;
+      applyTrackOffset(false);
+    });
+
+    els.splitter.addEventListener("pointerdown", function (event) {
+      state.splitterDragging = true;
+      els.splitter.setPointerCapture(event.pointerId);
+    });
+    els.splitter.addEventListener("pointermove", function (event) {
+      if (!state.splitterDragging) return;
+      var nextHeight = Math.max(180, Math.min(window.innerHeight - 290, window.innerHeight - event.clientY));
+      document.documentElement.style.setProperty("--timeline-height", nextHeight + "px");
+    });
+    els.splitter.addEventListener("pointerup", function (event) {
+      state.splitterDragging = false;
+      els.splitter.releasePointerCapture(event.pointerId);
+    });
+
+    window.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") setExtFilterOpen(false);
+      if (event.key === "ArrowLeft") selectIndex(state.selectedIndex - 1);
+      if (event.key === "ArrowRight") selectIndex(state.selectedIndex + 1);
+    });
+    window.addEventListener("resize", function () {
+      scheduleTimelineLayout(true);
+      centerActiveThumb(true);
+      hideHeatmapTooltip();
+      hideThumbGridTooltip();
+    });
+  }
+
+  function moveTrack() {
+    applyTrackOffset(!state.dragging);
+  }
+
+  async function restorePreviousDirectory() {
+    if (!("showDirectoryPicker" in window)) return;
+    try {
+      var handle = await loadSetting("rootHandle");
+      if (!handle) return;
+      setStatus("正在恢复上次选择的文件夹...");
+      var permission = await handle.queryPermission({ mode: "read" });
+      if (permission !== "granted") permission = await handle.requestPermission({ mode: "read" });
+      if (permission === "granted") await scanDirectoryHandle(handle, "已从上次选择恢复。");
+      if (permission !== "granted") setStatus("浏览器需要重新授权文件夹。");
+    } catch (error) {
+      setStatus("可以重新选择文件夹；当前浏览器没有恢复上次目录。");
+    }
+  }
+
+  loadFilterPreferences();
+  applyTheme(localStorage.getItem("designtrace:theme"));
+  state.heatmapCollapsed = localStorage.getItem("designtrace:heatmapCollapsed") === "1";
+  updateFolderTooltip();
+  updateExtensionFilterOptions();
+  bindEvents();
+  render();
+  restorePreviousDirectory();
+})();
+
+
+
+
+</script>
+  </body>
+</html>
