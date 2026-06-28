@@ -19,7 +19,7 @@ jobs:
           node-version: "20"
 
       - run: npm run check
-      - run: npm run build:single
+      - run: npm run build:standalone
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

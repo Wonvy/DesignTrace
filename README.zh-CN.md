@@ -29,6 +29,17 @@ DesignTrace 是一款纯前端 Web 应用：通过浏览器 **File System Access
 
 所有处理均在浏览器本地完成，**不会上传任何文件**。
 
+## 在线体验与下载
+
+| | 链接 |
+|---|---|
+| **在线** | https://wonvy.github.io/DesignTrace/ |
+| **下载** | https://github.com/Wonvy/DesignTrace/releases/latest/download/DesignTrace.html |
+| **CDN 备用** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@gh-pages/DesignTrace.html |
+
+首次启用 GitHub Pages：**仓库 Settings → Pages → Source：Deploy from a branch → Branch：`gh-pages` / (root) → Save**。  
+推送 `main` 后由 [pages.yml](.github/workflows/pages.yml) 自动部署单文件版本。
+
 ## 环境要求
 
 - **浏览器：** Chrome 或 Edge（需支持 File System Access API）
@@ -89,35 +100,42 @@ npm start
 | `npm run build:single` | 构建单文件 `dist/DesignTrace.html` |
 | `npm run check` | 检查 `server.js` 与 `public/app.js` 语法 |
 
-## 单文件版本
+## 单文件构建
 
 ```bash
-npm run build:single
+npm run build:standalone
 ```
 
-生成 `dist/DesignTrace.html`（约 180 KB），CSS 与 JS 已内联。仍需通过本地 HTTP 服务打开才能使用「选择文件夹」功能。
+输出 `dist/DesignTrace.html`。会自动内联 `public/index.html` 引用的全部 CSS/JS；若产出仍含外部 `<script src>` 或 `<link rel="stylesheet">` 则构建失败。
 
-## GitHub Releases
+## GitHub Pages 与 Releases
 
-推送版本标签后会自动构建并发布单文件 HTML 到 **Releases**：
+**Pages** — 推送 `main` → [pages.yml](.github/workflows/pages.yml) 构建并部署到 `gh-pages`（入口为 `index.html`）。
+
+**Release** — 推送版本标签 → [release.yml](.github/workflows/release.yml) 上传 `DesignTrace.html`：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git push origin main
+git tag v1.0.0
+git push origin v1.0.0
 ```
-
-也可在 GitHub **Releases** 页面创建标签 `v0.1.0`，[Release 工作流](.github/workflows/release.yml) 会自动上传构建产物。
 
 ## 目录结构
 
 ```
 DesignTrace/
 ├── public/           # 前端源码
-├── scripts/          # 构建脚本
-├── dist/             # 构建产物（单文件 HTML）
+├── scripts/
+│   ├── build-standalone.js
+│   └── build-single-html.js
+├── dist/             # 构建产物
+├── .github/workflows/
+│   ├── pages.yml
+│   ├── release.yml
+│   └── ci.yml
 ├── docs/
-│   └── screenshots/  # 文档截图
-├── server.js         # 本地静态服务器
+│   └── screenshots/
+├── server.js
 └── package.json
 ```
 

@@ -29,6 +29,17 @@ DesignTrace is a single-page web app that reads a local folder (via the browser 
 
 All processing happens in your browser. Files are never uploaded.
 
+## Live demo & download
+
+| | URL |
+|---|---|
+| **Live** | https://wonvy.github.io/DesignTrace/ |
+| **Download** | https://github.com/Wonvy/DesignTrace/releases/latest/download/DesignTrace.html |
+| **CDN mirror** | https://cdn.jsdelivr.net/gh/Wonvy/DesignTrace@gh-pages/DesignTrace.html |
+
+Enable GitHub Pages once: **Repository Settings → Pages → Source: Deploy from a branch → Branch: `gh-pages` / (root) → Save**.  
+Pushes to `main` deploy the standalone build via [pages.yml](.github/workflows/pages.yml).
+
 ## Requirements
 
 - **Browser:** Chrome or Edge (File System Access API)
@@ -82,21 +93,22 @@ Display for serial names: title shows **家书**, kicker shows **#870**.
 ## Single-file build
 
 ```bash
-npm run build:single
+npm run build:standalone
 ```
 
-Output: `dist/DesignTrace.html` (~180 KB). CSS and JS are inlined. Still requires `http://localhost` to use folder picker.
+Output: `dist/DesignTrace.html`. All CSS/JS from `public/index.html` are inlined automatically. The build fails if any external `<script src>` or `<link rel="stylesheet">` remains.
 
-## GitHub Releases
+## GitHub Pages & Releases
 
-Push a version tag to automatically build and publish `DesignTrace.html` as a release asset:
+**Pages** — push to `main` → [pages.yml](.github/workflows/pages.yml) builds and deploys to `gh-pages` as `index.html`.
+
+**Release** — push a version tag → [release.yml](.github/workflows/release.yml) uploads `DesignTrace.html`:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git push origin main
+git tag v1.0.0
+git push origin v1.0.0
 ```
-
-Or create a release in the GitHub **Releases** tab with tag `v0.1.0` — the [Release workflow](.github/workflows/release.yml) will attach the built HTML file.
 
 ## Project structure
 
@@ -107,9 +119,14 @@ DesignTrace/
 │   ├── app.js
 │   └── styles.css
 ├── scripts/
+│   ├── build-standalone.js
 │   └── build-single-html.js
 ├── dist/
 │   └── DesignTrace.html    # generated
+├── .github/workflows/
+│   ├── pages.yml
+│   ├── release.yml
+│   └── ci.yml
 ├── docs/
 │   └── screenshots/
 ├── server.js

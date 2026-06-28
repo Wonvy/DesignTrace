@@ -17,4 +17,4 @@ jobs:
           node-version: "20"
 
       - run: npm run check
-      - run: npm run build:single
+      - run: npm run build:standalone

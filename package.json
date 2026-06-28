@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js && node --check public/app.js",
-    "build:single": "node scripts/build-single-html.js"
+    "build:standalone": "node scripts/build-standalone.js",
+    "build:single": "node scripts/build-standalone.js"
   },
   "engines": {
     "node": ">=18"
